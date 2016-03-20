@@ -1,46 +1,115 @@
 grammar Grammar;
+
 program
-    : programElement*
+    : programElement* EOF
     ;
 
 programElement
-    : variable
-//    | function
-//    | comment
+    : methodDeclaration
+    | variableDeclaration
     ;
 
-variable
-    : type NAME (ASSIGN value)
+methodDeclaration
+    : type Identifier formalParameters block
+    ;
+
+formalParameters
+    : '(' formalParameterList? ')'
+    ;
+
+formalParameterList
+    : formalParameter (',' formalParameter)*
+    ;
+
+formalParameter
+    : type Identifier
+    ;
+
+block
+    : '{' blockStatement* '}'
+    ;
+
+blockStatement
+    : variableDeclaration
+    | statement
+    ;
+
+statement
+    : 'if' parExpression brackedStatement ('else' brackedStatement)?
+    | 'while' parExpression brackedStatement
+    | 'return' expression? ';'
+    | statementExpression ';'
+    ;
+
+brackedStatement
+    : '{' statement* '}'
+    ;
+
+parExpression
+    : '(' expression ')'
+    ;
+
+statementExpression
+    :   expression
+    ;
+
+variableDeclaration
+    : type variableDeclarator ';'
     ;
 
 type
-    : INT
-    | LONG
-    | BOOL
+    : 'boolean'
+    | 'int'
+    | 'long'
     ;
 
-value
-    : NUMBER
-    | booleanLiteral
+variableDeclarator
+    : Identifier ('=' expression)?
     ;
 
-booleanLiteral
-    : TRUE
-    | FALSE
+Identifier
+    : Letter LetterOrDigit*
     ;
 
-ASSIGN : '=' ;
+expression
+    : primary
+    | expression '(' expressionList? ')'
+    | ('+'|'-') expression
+    | expression ('*'|'/'|'%') expression
+    | expression ('+'|'-') expression
+    | expression ('<' '<' | '>' '>' '>' | '>' '>') expression
+    | expression ('<=' | '>=' | '>' | '<') expression
+    | expression ('==' | '!=') expression
+    | expression '&&' expression
+    | expression '||' expression
+    | <assoc=right> expression '=' expression
+    ;
 
-INT  : 'int' ;
-LONG : 'long' ;
-BOOL : 'boolean' ;
+expressionList
+    :   expression (',' expression)*
+    ;
 
-TRUE  : 'true' ;
-FALSE : 'false' ;
+primary
+    :   '(' expression ')'
+    |   literal
+    |   Identifier
+    ;
 
-NUMBER       : '-'? NUM ;
-fragment NUM : '0' | [1-9] [0-9]* ;
+literal
+    : IntegerLiteral
+    | BooleanLiteral
+    ;
 
-NAME : [a-fA-F] [0-9a-fA-F]* ;
+IntegerLiteral : Number NumberSuffix? ;
+BooleanLiteral : 'true' | 'false' ;
+
+fragment Number : '0' | NonZeroDigit Digit* ;
+fragment NumberSuffix : [lL] ;
+fragment Digit : '0' | NonZeroDigit ;
+fragment NonZeroDigit : [1-9] ;
+
+fragment Letter : [a-zA-Z_] ;
+fragment LetterOrDigit : [a-zA-Z0-9_] ;
 
 WS : [ \t\u000C\r\n]+ -> skip ;
+COMMENT : '//' ~[\r\n]* -> skip ;
