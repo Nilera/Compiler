@@ -5,8 +5,8 @@ from GrammarParser import GrammarParser
 
 
 def main():
-    input = FileStream("input")
-    lexer = GrammarLexer(input)
+    input_stream = FileStream("input")
+    lexer = GrammarLexer(input_stream)
     stream = CommonTokenStream(lexer)
     parser = GrammarParser(stream)
     parser.program()

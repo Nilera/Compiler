@@ -1,3 +1,6 @@
 class CodeGenerator(object):
-    def code(self):
+    def windows_code(self):
         raise NotImplementedError
+
+    def linux_code(self):
+        return self.windows_code()

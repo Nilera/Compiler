@@ -26,5 +26,5 @@ class Program(StatementsContainer):
     #             return state
     #     return None
 
-    def code(self):
+    def windows_code(self):
         raise NotImplementedError

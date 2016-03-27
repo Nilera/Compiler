@@ -24,7 +24,7 @@ class Function(StatementsContainer):
         self.__name = "_%s" % self.__name
         mangled_name[prev_name] = self.__name
 
-    def code(self):
+    def windows_code(self):
         raise NotImplementedError
 
     # def find_variable(self, name):

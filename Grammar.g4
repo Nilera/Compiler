@@ -6,6 +6,7 @@ from entity.Variable import Variable
 from entity.Function import *
 from entity.Expression import *
 from entity.Type import Type
+from entity.Scalar import *
 from entity.Statement import *
 }
 
@@ -109,19 +110,19 @@ expression returns [expr = None]
     | e=expression '(' (expressionList{tmp_var = $expressionList.args})? ')'
     {$expr = CallFunctionStatement($e.text, tmp_var)}
     | sign=('+'|'-') expression
-    {$expr = Expression($sign.text, None, $expression.expr)}
+    {$expr = get_expression($sign.text, None, $expression.expr)}
     | e1=expression sign=('*'|'/'|'%') e2=expression
-    {$expr = Expression($sign.text, $e1.expr, $e2.expr)}
+    {$expr = get_expression($sign.text, $e1.expr, $e2.expr)}
     | e1=expression sign=('+'|'-') e2=expression
-    {$expr = Expression($sign.text, $e1.expr, $e2.expr)}
+    {$expr = get_expression($sign.text, $e1.expr, $e2.expr)}
     | e1=expression sign=('<=' | '>=' | '>' | '<') e2=expression
-    {$expr = Expression($sign.text, $e1.expr, $e2.expr)}
+    {$expr = get_expression($sign.text, $e1.expr, $e2.expr)}
     | e1=expression sign=('==' | '!=') e2=expression
-    {$expr = Expression($sign.text, $e1.expr, $e2.expr)}
+    {$expr = get_expression($sign.text, $e1.expr, $e2.expr)}
     | e1=expression sign='&&' e2=expression
-    {$expr = Expression($sign.text, $e1.expr, $e2.expr)}
+    {$expr = get_expression($sign.text, $e1.expr, $e2.expr)}
     | e1=expression sign='||' e2=expression
-    {$expr = Expression($sign.text, $e1.expr, $e2.expr)}
+    {$expr = get_expression($sign.text, $e1.expr, $e2.expr)}
     | <assoc=right> n=expression '=' e=expression
     {$expr = AssignmentOperator($n.expr, $e.expr)}
     ;
@@ -135,9 +136,9 @@ primary returns [expr = None]
     : '(' expression ')'
     {$expr = $expression.expr}
     | literal
-    {$expr = Expression($literal.text)}
+    {$expr = get_scalar($literal.text)}
     | Identifier
-    {$expr = Expression($Identifier.text)}
+    {$expr = get_scalar($Identifier.text)}
     ;
 
 Identifier

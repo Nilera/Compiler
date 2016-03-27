@@ -27,7 +27,7 @@ class Variable(NameMangling, CodeGenerator):
             self.__expression.name_mangling(function_name, mangled_name)
         mangled_name[prev_name] = self.__name
 
-    def code(self):
+    def windows_code(self):
         raise NotImplementedError
 
     # def eval_expression(self, variable_state=None):
