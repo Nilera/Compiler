@@ -9,8 +9,9 @@ def main():
     lexer = GrammarLexer(input)
     stream = CommonTokenStream(lexer)
     parser = GrammarParser(stream)
-    tree = parser.prog()
-    print(tree.toStringTree())
+    parser.program()
+    parser.program_states.name_mangling()
+    print(str(parser.program_states))
 
 
 main()
