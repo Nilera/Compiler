@@ -24,18 +24,8 @@ class Function(StatementsContainer):
         self.__name = "_%s" % self.__name
         mangled_name[prev_name] = self.__name
 
-    def windows_code(self):
-        raise NotImplementedError
-
-    # def find_variable(self, name):
-    #     for state in self._statements:
-    #         if isinstance(state, Variable) and state.name == name:
-    #             return state
-    #         elif isinstance(state, Statement):
-    #             st = state.find_variable(name)
-    #             if st is not None:
-    #                 return st
-    #     return None
+    def windows_code(self, code_builder, function_state):
+        pass
 
     def __str__(self):
         params = "" if self.__params is None else ", ".join(var.name for var in self.__params)

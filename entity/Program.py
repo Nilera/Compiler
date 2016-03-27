@@ -1,5 +1,7 @@
+from CodeGenerator import CodeGenerator
+from FunctionState import FunctionState
+from NameMangling import NameMangling
 from entity.Function import Function
-from entity.NameMangling import NameMangling
 from entity.StatementsContainer import StatementsContainer
 
 
@@ -17,14 +19,7 @@ class Program(StatementsContainer):
                     if isinstance(state, NameMangling):
                         state.name_mangling(function.name, function_name_mangling)
 
-    # def get_states_till_to(self, index):
-    #     return self._states[0: int(index)]
-
-    # def find_variable(self, name):
-    #     for state in self._states:
-    #         if isinstance(state, Variable) and state.name == name:
-    #             return state
-    #     return None
-
-    def windows_code(self):
-        raise NotImplementedError
+    def windows_code(self, code_builder, function_state=None):
+        for statement in self:
+            if isinstance(statement, CodeGenerator):
+                statement.windows_code(code_builder, FunctionState())

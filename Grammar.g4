@@ -42,7 +42,7 @@ formalParameterList returns [params = None]
 
 formalParameter returns [variable = None]
     : valueType Identifier
-    {$variable = Variable($valueType.value_type, $Identifier.text, CallFunctionStatement("pop"))}
+    {$variable = Variable($valueType.value_type, $Identifier.text, CallFunctionStatement("_pop"))}
     ;
 
 block returns [statements = None]

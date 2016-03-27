@@ -1,5 +1,6 @@
-from entity.CodeGenerator import CodeGenerator
-from entity.NameMangling import NameMangling
+from CodeGenerator import CodeGenerator
+from NameMangling import NameMangling
+from entity.Scalar import IntScalar, BoolScalar
 
 
 class Variable(NameMangling, CodeGenerator):
@@ -27,16 +28,13 @@ class Variable(NameMangling, CodeGenerator):
             self.__expression.name_mangling(function_name, mangled_name)
         mangled_name[prev_name] = self.__name
 
-    def windows_code(self):
-        raise NotImplementedError
-
-    # def eval_expression(self, variable_state=None):
-    #     value = self.__expression.eval(variable_state)
-    #     if self.__value_type.is_correct_value(value):
-    #         return value
-    #     else:
-    #         type_name = str(self.__value_type)
-    #         raise ValueError("Variable %s is not type %s" % (self.__name, type_name))
+    def windows_code(self, code_builder, function_state):
+        if self.expression is None:
+            code_builder.add_data(self.name, "dw", self.value_type.default_value())
+        elif isinstance(self.expression, (IntScalar, BoolScalar)):
+            code_builder.add_data(self.name, "dw", self.expression.value)
+        else:
+            pass
 
     def __str__(self):
         assign = "" if self.__expression is None else " = %s" % str(self.__expression)

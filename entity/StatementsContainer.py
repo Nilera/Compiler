@@ -1,5 +1,5 @@
-from entity.CodeGenerator import CodeGenerator
-from entity.NameMangling import NameMangling
+from CodeGenerator import CodeGenerator
+from NameMangling import NameMangling
 
 
 class StatementsContainer(NameMangling, CodeGenerator):
@@ -23,7 +23,7 @@ class StatementsContainer(NameMangling, CodeGenerator):
         for statement in self:
             statement.name_mangling(function_name, mangled_name)
 
-    def windows_code(self):
+    def windows_code(self, code_generator, function_state):
         raise NotImplementedError
 
     def __str__(self):

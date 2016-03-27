@@ -1,7 +1,7 @@
 from operator import contains
 
-from entity.CodeGenerator import CodeGenerator
-from entity.NameMangling import NameMangling
+from CodeGenerator import CodeGenerator
+from NameMangling import NameMangling
 from entity.StatementsContainer import StatementsContainer
 
 
@@ -15,7 +15,7 @@ class WhileStatement(StatementsContainer):
         self.__condition.name_mangling(function_name, mangled_name)
         super().name_mangling(function_name, mangled_name)
 
-    def windows_code(self):
+    def windows_code(self, code_builder, function_state):
         raise NotImplementedError
 
     def __str__(self):
@@ -33,7 +33,7 @@ class IfStatement(StatementsContainer):
         self.__condition.name_mangling(function_name, mangled_name)
         super().name_mangling(function_name, mangled_name)
 
-    def windows_code(self):
+    def windows_code(self, code_builder, function_state):
         raise NotImplementedError
 
     def __str__(self):
@@ -46,7 +46,7 @@ class ElseStatement(StatementsContainer):
         super(ElseStatement, self).__init__()
         self.add_all(statements)
 
-    def windows_code(self):
+    def windows_code(self, code_builder, function_state):
         raise NotImplementedError
 
     def __str__(self):
@@ -60,7 +60,7 @@ class ReturnStatement(NameMangling, CodeGenerator):
     def name_mangling(self, function_name, mangled_name):
         self.__expression.name_mangling(function_name, mangled_name)
 
-    def windows_code(self):
+    def windows_code(self, code_builder, function_state):
         raise NotImplementedError
 
     def __str__(self):
@@ -80,7 +80,7 @@ class CallFunctionStatement(NameMangling, CodeGenerator):
             if contains(mangled_name, self.__args[i]):
                 self.__args[i] = mangled_name[self.__args[i]]
 
-    def windows_code(self):
+    def windows_code(self, code_builder, function_state):
         raise NotImplementedError
 
     def __str__(self):

@@ -1,7 +1,6 @@
 from operator import contains
 
-from entity.CodeGenerator import CodeGenerator
-from entity.NameMangling import NameMangling
+from NameMangling import NameMangling
 
 
 def get_scalar(value):
@@ -13,7 +12,7 @@ def get_scalar(value):
         return VariableScalar(value)
 
 
-class Scalar(NameMangling, CodeGenerator):
+class Scalar(NameMangling):
     def __init__(self, value):
         super(Scalar, self).__init__()
         self._value = value
@@ -24,9 +23,6 @@ class Scalar(NameMangling, CodeGenerator):
 
     def name_mangling(self, function_name, mangled_name):
         pass
-
-    def windows_code(self):
-        raise NotImplementedError
 
     def __str__(self):
         return str(self._value)
@@ -40,18 +36,12 @@ class VariableScalar(Scalar):
         if contains(mangled_name, self._value):
             self._value = mangled_name[self._value]
 
-    def windows_code(self):
-        raise NotImplementedError
-
 
 class IntScalar(Scalar):
     def __init__(self, value):
         if not value.isdigit():
             raise ValueError("%s is not integer value" % value)
         super(IntScalar, self).__init__(value)
-
-    def windows_code(self):
-        raise NotImplementedError
 
 
 class BoolScalar(Scalar):
@@ -60,6 +50,6 @@ class BoolScalar(Scalar):
             raise ValueError("%s is not boolean value" % value)
         super(BoolScalar, self).__init__(value)
 
-    def windows_code(self):
-        raise NotImplementedError
-        # self.__value = 1 if self.__value == "true" else 0
+    @property
+    def value(self):
+        return 0 if self._value == "false" else 1

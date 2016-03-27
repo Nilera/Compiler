@@ -1,5 +1,5 @@
-from entity.CodeGenerator import CodeGenerator
-from entity.NameMangling import NameMangling
+from CodeGenerator import CodeGenerator
+from NameMangling import NameMangling
 
 
 def get_expression(sign, left=None, right=None):
@@ -41,7 +41,7 @@ class Operator(NameMangling, CodeGenerator):
     def name_mangling(self, function_name, mangled_name):
         raise NotImplementedError
 
-    def windows_code(self):
+    def windows_code(self, code_builder, function_state):
         raise NotImplementedError
 
 
@@ -55,7 +55,7 @@ class AssignmentOperator(Operator):
         self.__name.name_mangling(function_name, mangled_name)
         self.__expression.name_mangling(function_name, mangled_name)
 
-    def windows_code(self):
+    def windows_code(self, code_builder, function_state):
         raise NotImplementedError
 
     def __str__(self):
@@ -70,7 +70,7 @@ class UnaryOperator(Operator):
     def name_mangling(self, function_name, mangled_name):
         self._value.name_mangling(function_name, mangled_name)
 
-    def windows_code(self):
+    def windows_code(self, code_builder, function_state):
         raise NotImplementedError
 
     def __get_sign(self):
@@ -84,7 +84,7 @@ class UnaryPlus(UnaryOperator):
     def __init__(self, value):
         super(UnaryPlus, self).__init__(value)
 
-    def windows_code(self):
+    def windows_code(self, code_builder, function_state):
         raise NotImplementedError
 
     def __get_sign(self):
@@ -95,7 +95,7 @@ class UnaryMinus(UnaryOperator):
     def __init__(self, value):
         super(UnaryMinus, self).__init__(value)
 
-    def windows_code(self):
+    def windows_code(self, code_builder, function_state):
         raise NotImplementedError
 
     def __get_sign(self):
@@ -112,7 +112,7 @@ class BinaryOperator(Operator):
         self._left.name_mangling(function_name, mangled_name)
         self._right.name_mangling(function_name, mangled_name)
 
-    def windows_code(self):
+    def windows_code(self, code_builder, function_state):
         raise NotImplementedError
 
     def _get_sign(self):
@@ -126,7 +126,7 @@ class Plus(BinaryOperator):
     def __init__(self, left, right):
         super(Plus, self).__init__(left, right)
 
-    def windows_code(self):
+    def windows_code(self, code_builder, function_state):
         raise NotImplementedError
 
     def _get_sign(self):
@@ -137,7 +137,7 @@ class Minus(BinaryOperator):
     def __init__(self, left, right):
         super(Minus, self).__init__(left, right)
 
-    def windows_code(self):
+    def windows_code(self, code_builder, function_state):
         raise NotImplementedError
 
     def _get_sign(self):
@@ -148,7 +148,7 @@ class Multiply(BinaryOperator):
     def __init__(self, left, right):
         super(Multiply, self).__init__(left, right)
 
-    def windows_code(self):
+    def windows_code(self, code_builder, function_state):
         raise NotImplementedError
 
     def _get_sign(self):
@@ -159,7 +159,7 @@ class Divide(BinaryOperator):
     def __init__(self, left, right):
         super(Divide, self).__init__(left, right)
 
-    def windows_code(self):
+    def windows_code(self, code_builder, function_state):
         raise NotImplementedError
 
     def _get_sign(self):
@@ -170,7 +170,7 @@ class Modulo(BinaryOperator):
     def __init__(self, left, right):
         super(Modulo, self).__init__(left, right)
 
-    def windows_code(self):
+    def windows_code(self, code_builder, function_state):
         raise NotImplementedError
 
     def _get_sign(self):
@@ -181,7 +181,7 @@ class Greater(BinaryOperator):
     def __init__(self, left, right):
         super(Greater, self).__init__(left, right)
 
-    def windows_code(self):
+    def windows_code(self, code_builder, function_state):
         raise NotImplementedError
 
     def _get_sign(self):
@@ -192,7 +192,7 @@ class Less(BinaryOperator):
     def __init__(self, left, right):
         super(Less, self).__init__(left, right)
 
-    def windows_code(self):
+    def windows_code(self, code_builder, function_state):
         raise NotImplementedError
 
     def _get_sign(self):
@@ -203,7 +203,7 @@ class Equal(BinaryOperator):
     def __init__(self, left, right):
         super(Equal, self).__init__(left, right)
 
-    def windows_code(self):
+    def windows_code(self, code_builder, function_state):
         raise NotImplementedError
 
     def _get_sign(self):
@@ -214,7 +214,7 @@ class GreaterOrEqual(BinaryOperator):
     def __init__(self, left, right):
         super(GreaterOrEqual, self).__init__(left, right)
 
-    def windows_code(self):
+    def windows_code(self, code_builder, function_state):
         raise NotImplementedError
 
     def _get_sign(self):
@@ -225,7 +225,7 @@ class LessOrEqual(BinaryOperator):
     def __init__(self, left, right):
         super(LessOrEqual, self).__init__(left, right)
 
-    def windows_code(self):
+    def windows_code(self, code_builder, function_state):
         raise NotImplementedError
 
     def _get_sign(self):
@@ -236,7 +236,7 @@ class NotEqual(BinaryOperator):
     def __init__(self, left, right):
         super(NotEqual, self).__init__(left, right)
 
-    def windows_code(self):
+    def windows_code(self, code_builder, function_state):
         raise NotImplementedError
 
     def _get_sign(self):
@@ -247,7 +247,7 @@ class Or(BinaryOperator):
     def __init__(self, left, right):
         super(Or, self).__init__(left, right)
 
-    def windows_code(self):
+    def windows_code(self, code_builder, function_state):
         raise NotImplementedError
 
     def _get_sign(self):
@@ -258,7 +258,7 @@ class And(BinaryOperator):
     def __init__(self, left, right):
         super(And, self).__init__(left, right)
 
-    def windows_code(self):
+    def windows_code(self, code_builder, function_state):
         raise NotImplementedError
 
     def _get_sign(self):

@@ -11,6 +11,12 @@ class Type(Enum):
         else:
             return isinstance(value, bool)
 
+    def default_value(self):
+        if self == Type.int:
+            return 0
+        else:
+            return 0
+
     def __str__(self):
         return self.name
 
