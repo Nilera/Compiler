@@ -17,6 +17,12 @@ class Type(Enum):
         else:
             return 0
 
+    def format_string(self):
+        if self == Type.int:
+            return "int_format", "db", "\"%d\""
+        else:
+            return "int_format", "db", "\"%d\""
+
     def __str__(self):
         return self.name
 

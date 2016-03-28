@@ -1,6 +1,6 @@
 from CodeGenerator import CodeGenerator
-from FunctionState import FunctionState
 from NameMangling import NameMangling
+from ProgramState import ProgramState
 from entity.Function import Function
 from entity.StatementsContainer import StatementsContainer
 
@@ -19,7 +19,7 @@ class Program(StatementsContainer):
                     if isinstance(state, NameMangling):
                         state.name_mangling(function.name, function_name_mangling)
 
-    def windows_code(self, code_builder, function_state=None):
+    def windows_code(self, code_builder, program_state):
         for statement in self:
             if isinstance(statement, CodeGenerator):
-                statement.windows_code(code_builder, FunctionState())
+                statement.windows_code(code_builder, program_state)

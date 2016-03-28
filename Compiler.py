@@ -1,8 +1,9 @@
 from antlr4 import *
 
+from CodeBuilder import CodeBuilder
 from GrammarLexer import GrammarLexer
 from GrammarParser import GrammarParser
-from CodeBuilder import CodeBuilder
+from ProgramState import ProgramState
 
 
 def main():
@@ -12,9 +13,11 @@ def main():
     parser = GrammarParser(stream)
     parser.program()
     parser.program_states.name_mangling()
-    builder = CodeBuilder()
-    parser.program_states.windows_code(builder)
+    state = ProgramState()
+    builder = CodeBuilder(state)
+    parser.program_states.windows_code(builder, state)
     print(str(builder))
+    # print(str(parser.program_states))
 
 
 main()

@@ -28,13 +28,17 @@ class Variable(NameMangling, CodeGenerator):
             self.__expression.name_mangling(function_name, mangled_name)
         mangled_name[prev_name] = self.__name
 
-    def windows_code(self, code_builder, function_state):
+    def windows_code(self, code_builder, program_state):
+        program_state.add_variable(self)
         if self.expression is None:
             code_builder.add_data(self.name, "dw", self.value_type.default_value())
         elif isinstance(self.expression, (IntScalar, BoolScalar)):
             code_builder.add_data(self.name, "dw", self.expression.value)
         else:
-            pass
+            if program_state.is_global_statement():
+                pass
+            else:
+                pass
 
     def __str__(self):
         assign = "" if self.__expression is None else " = %s" % str(self.__expression)

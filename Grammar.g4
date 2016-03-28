@@ -27,7 +27,7 @@ programElement returns [element = None]
 
 functionDeclaration returns [function = None]
     : valueType Identifier formalParameters block
-    {$function = Function($valueType.value_type, $Identifier.text, $formalParameters.params, $block.statements)}
+    {$function = get_function($valueType.value_type, $Identifier.text, $formalParameters.params, $block.statements)}
     ;
 
 formalParameters returns [params = None]
@@ -42,7 +42,7 @@ formalParameterList returns [params = None]
 
 formalParameter returns [variable = None]
     : valueType Identifier
-    {$variable = Variable($valueType.value_type, $Identifier.text, CallFunctionStatement("_pop"))}
+    {$variable = get_call_function_statement(CallPopFunction.FUNCTION_NAME, Variable($valueType.value_type, $Identifier.text))}
     ;
 
 block returns [statements = None]
@@ -108,7 +108,7 @@ expression returns [expr = None]
     : primary
     {$expr = $primary.expr}
     | e=expression '(' (expressionList{tmp_var = $expressionList.args})? ')'
-    {$expr = CallFunctionStatement($e.text, tmp_var)}
+    {$expr = get_call_function_statement($e.text, tmp_var)}
     | sign=('+'|'-') expression
     {$expr = get_expression($sign.text, None, $expression.expr)}
     | e1=expression sign=('*'|'/'|'%') e2=expression
