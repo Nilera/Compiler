@@ -39,10 +39,14 @@ class Function(StatementsContainer):
         mangled_name[prev_name] = self._name
 
     def windows_code(self, code_builder, program_state):
+        program_state.set_function_name(self._name)
         code_builder.add_label(self.name)
+        code_builder.add_instruction("sub", "esp", str(4 * len(self._params)))
         for statement in self:
             statement.windows_code(code_builder, program_state)
+        code_builder.add_instruction("add", "esp", "4")
         code_builder.add_instruction("ret")
+        program_state.set_function_name("")
 
     def __str__(self):
         params = "" if self._params is None else ", ".join(var.name for var in self._params)
@@ -51,7 +55,17 @@ class Function(StatementsContainer):
 
 class MainFunction(Function):
     FUNCTION_NAME = "main"
-    GLOBAL_VARIABLES_FUNCTION = "__global_variables_initialization"
+
+    def windows_code(self, code_builder, program_state):
+        program_state.set_function_name(self._name)
+        code_builder.add_label(self.name)
+        for statement in self:
+            from entity.Statement import ReturnStatement
+            if isinstance(statement, ReturnStatement):
+                statement.windows_code(code_builder, program_state, True)
+            else:
+                statement.windows_code(code_builder, program_state)
+        program_state.set_function_name("")
 
     def __init__(self, return_type, name, params=None, function_state=None):
         super(MainFunction, self).__init__(return_type, name, params, function_state)
@@ -64,6 +78,7 @@ class ReadFunction(Function):
         super(ReadFunction, self).__init__(return_type, name, params, function_state)
 
     def windows_code(self, code_builder, program_state):
+        program_state.set_function_name(self._name)
         format_string = self._params[0].value_type.format_string()
         code_builder.add_extern("__imp__scanf")
         code_builder.add_label(self.get_label())
@@ -73,6 +88,7 @@ class ReadFunction(Function):
         code_builder.add_instruction("add", "esp", "8")
         code_builder.add_instruction("ret")
         code_builder.add_data(format_string[0], format_string[1], format_string[2])
+        program_state.set_function_name("")
 
     def get_label(self):
         return "__%s_%s" % (self._name, self._params[0].name)
@@ -85,6 +101,7 @@ class WriteFunction(Function):
         super(WriteFunction, self).__init__(return_type, name, params, function_state)
 
     def windows_code(self, code_builder, program_state):
+        program_state.set_function_name(self._name)
         format_string = self._params[0].value_type.format_string()
         code_builder.add_extern("__imp__printf")
         code_builder.add_label(self.get_label())
@@ -95,6 +112,7 @@ class WriteFunction(Function):
         code_builder.add_instruction("add", "esp", "8")
         code_builder.add_instruction("ret")
         code_builder.add_data(format_string[0], format_string[1], format_string[2])
+        program_state.set_function_name("")
 
     def get_label(self):
         return "__%s_%s" % (self._name, self._params[0].name)

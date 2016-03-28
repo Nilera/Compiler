@@ -1,6 +1,8 @@
 from CodeGenerator import CodeGenerator
 from NameMangling import NameMangling
-from entity.Scalar import IntScalar, BoolScalar
+from entity.Expression import Operator
+from entity.Scalar import IntScalar, BoolScalar, VariableScalar
+from entity.Statement import CallFunctionStatement
 
 
 class Variable(NameMangling, CodeGenerator):
@@ -34,11 +36,18 @@ class Variable(NameMangling, CodeGenerator):
             code_builder.add_data(self.name, "dw", self.value_type.default_value())
         elif isinstance(self.expression, (IntScalar, BoolScalar)):
             code_builder.add_data(self.name, "dw", self.expression.value)
-        else:
-            if program_state.is_global_statement():
-                pass
-            else:
-                pass
+        elif isinstance(self.expression, VariableScalar):
+            code_builder.add_data(self.name, "dw", self.value_type.default_value())
+            code_builder.add_instruction("mov", "eax", "[%s]" % self.expression.value)
+            code_builder.add_instruction("mov", "[%s]" % self.name, "eax")
+        elif isinstance(self.expression, Operator):
+            code_builder.add_data(self.name, "dw", self.value_type.default_value())
+            self.expression.windows_code(code_builder, program_state)
+            code_builder.add_instruction("mov", "[%s]" % self.name, "eax")
+        elif isinstance(self.expression, CallFunctionStatement):
+            code_builder.add_data(self.name, "dw", self.value_type.default_value())
+            self.expression.windows_code(code_builder, program_state)
+            code_builder.add_instruction("mov", "[%s]" % self.name, "eax")
 
     def __str__(self):
         assign = "" if self.__expression is None else " = %s" % str(self.__expression)

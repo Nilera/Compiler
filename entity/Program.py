@@ -1,6 +1,5 @@
 from CodeGenerator import CodeGenerator
 from NameMangling import NameMangling
-from ProgramState import ProgramState
 from entity.Function import Function
 from entity.StatementsContainer import StatementsContainer
 

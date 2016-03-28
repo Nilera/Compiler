@@ -14,9 +14,6 @@ class CodeBuilder(object):
     def add_extern(self, name):
         self.__externs.add("extern %s" % name)
 
-    def add_global_variable_instruction(self, instr, op1=None, op2=None, op3=None, op4=None):
-        self.__add_instruction(instr, op1, op2, op3, op4, self.__text_section_instruction)
-
     def add_global_function(self, function):
         self.__global_functions.append(function)
 
@@ -24,7 +21,10 @@ class CodeBuilder(object):
         self.__text_section_instruction.append("%s:" % label)
 
     def add_instruction(self, instr, op1=None, op2=None, op3=None, op4=None):
-        self.__add_instruction(instr, op1, op2, op3, op4, self.__text_section_instruction)
+        if self.__program_state.is_global_statement():
+            self.__add_instruction(instr, op1, op2, op3, op4, self.__global_variables_initialization)
+        else:
+            self.__add_instruction(instr, op1, op2, op3, op4, self.__text_section_instruction)
 
     @staticmethod
     def __add_instruction(instr, op1, op2, op3, op4, instruction_list):
@@ -43,12 +43,11 @@ class CodeBuilder(object):
 
         externs = "\n".join(x for x in self.__externs)
         text = "section .text\n" + \
-               "global _main\n\n" + \
-               MainFunction.GLOBAL_VARIABLES_FUNCTION + ":\n" + \
+               "global _%s\n\n" % MainFunction.FUNCTION_NAME + \
                "\n".join(x for x in self.__global_variables_initialization) + \
-               "\tret\n" + \
+               "\tjmp _%s\n" % MainFunction.FUNCTION_NAME + \
                "\n".join(x for x in self.__text_section_instruction)
         data = "section .data\n" + \
                "\n".join(x for x in self.__data_section_instruction) + \
                "\n\tend"
-        return "%s\n%s\n\n%s" % (externs, text, data)
+        return "%s\n\n%s\n\n%s" % (externs, text, data)
