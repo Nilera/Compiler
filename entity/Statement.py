@@ -105,10 +105,13 @@ class ReturnStatement(NameMangling, CodeGenerator):
         if is_main:
             code_builder.add_extern("__imp__ExitProcess@4")
         if isinstance(self.__expression, Operator):
-            raise NotImplementedError
-        else:
+            self.__expression.windows_code(code_builder, program_state)
+            code_builder.add_instruction("push", "eax")
+        elif isinstance(self.__expression, VariableScalar):
             code_builder.add_instruction("mov", "eax", "[%s]" % self.__expression.value)
             code_builder.add_instruction("push", "eax")
+        else:
+            code_builder.add_instruction("push", self.__expression.value)
         if is_main:
             code_builder.add_instruction("call", "[__imp__ExitProcess@4]")
 
@@ -121,8 +124,6 @@ def get_call_function_statement(function_name, args=None):
         return CallReadFunction(function_name, args)
     elif function_name == WriteFunction.FUNCTION_NAME:
         return CallWriteFunction(function_name, args)
-    elif function_name == CallPopFunction.FUNCTION_NAME:
-        return CallPopFunction(function_name, args)
     else:
         return CallFunctionStatement(function_name, args)
 
@@ -159,9 +160,7 @@ class CallFunctionStatement(NameMangling, CodeGenerator):
     def _convert_args(program_state, raw_args):
         args = []
         for var_scalar in raw_args:
-            var_name = var_scalar.value
-            variable = program_state.get_variable(var_name)
-            args.append(CallPopFunction(CallPopFunction.FUNCTION_NAME, variable))
+            args.append(program_state.get_variable(var_scalar.value))
         return args
 
 
@@ -192,25 +191,3 @@ class CallWriteFunction(CallFunctionStatement):
         for var_scalar in raw_args:
             args.append(program_state.get_variable(var_scalar.value))
         return args
-
-
-class CallPopFunction(CallFunctionStatement):
-    FUNCTION_NAME = "__pop"
-
-    def __init__(self, function_name, args):
-        super(CallPopFunction, self).__init__(function_name, args)
-
-    @property
-    def variable(self):
-        return self._args
-
-    def name_mangling(self, function_name, mangled_name):
-        self._args.name_mangling(function_name, mangled_name)
-
-    def windows_code(self, code_builder, program_state):
-        self._args.windows_code(code_builder, program_state)
-        code_builder.add_instruction("pop", "eax")
-        code_builder.add_instruction("mov", "[%s]" % self._args.name, "eax")
-
-    def __str__(self):
-        return "%s(%s)" % (self._function_name, self._args)

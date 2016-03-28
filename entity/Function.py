@@ -17,17 +17,8 @@ class Function(StatementsContainer):
         super(Function, self).__init__()
         self._return_type = return_type
         self._name = name
-        self._params = params
-
-        # add argument of function as local variables
-        if params is not None:
-            self.add_all(params)
-            self._params = []
-            for call_pop in params:
-                self._params.append(call_pop.variable)
-        if function_state is None:
-            function_state = []
-        self.add_all(function_state)
+        self._params = [] if params is None else params
+        self.add_all([] if function_state is None else function_state)
 
     @property
     def name(self):
@@ -37,11 +28,17 @@ class Function(StatementsContainer):
         prev_name = self._name
         self._name = "_%s" % self._name
         mangled_name[prev_name] = self._name
+        for param in self._params:
+            param.name_mangling(self._name, {})
 
     def windows_code(self, code_builder, program_state):
         program_state.set_function_name(self._name)
         code_builder.add_label(self.name)
         code_builder.add_instruction("sub", "esp", str(4 * len(self._params)))
+        for param in self._params:
+            param.windows_code(code_builder, program_state)
+            code_builder.add_instruction("pop", "eax")
+            code_builder.add_instruction("mov", "[%s]" % param.name, "eax")
         for statement in self:
             statement.windows_code(code_builder, program_state)
         code_builder.add_instruction("add", "esp", "4")
