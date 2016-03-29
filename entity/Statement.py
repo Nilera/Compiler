@@ -1,7 +1,7 @@
 from operator import contains
 
 from entity.CodeGenerator import CodeGenerator
-from entity.Expression import Operator, BooleanBinaryOperator
+from entity.Expression import BooleanBinaryOperator
 from entity.Function import ReadFunction, WriteFunction
 from entity.NameMangling import NameMangling
 from entity.Scalar import VariableScalar, BoolScalar, Scalar
@@ -113,14 +113,8 @@ class ReturnStatement(NameMangling, CodeGenerator):
     def windows_code(self, code_builder, program_state, is_main=False):
         if is_main:
             code_builder.add_extern("__imp__ExitProcess@4")
-        if isinstance(self.__expression, Operator):
-            self.__expression.windows_code(code_builder, program_state)
-            code_builder.add_instruction("push", "eax")
-        elif isinstance(self.__expression, VariableScalar):
-            code_builder.add_instruction("mov", "eax", "[%s]" % self.__expression.value)
-            code_builder.add_instruction("push", "eax")
-        else:
-            code_builder.add_instruction("push", self.__expression.value)
+        self.__expression.windows_code(code_builder, program_state)
+        code_builder.add_instruction("push", "eax")
         if is_main:
             code_builder.add_instruction("call", "[__imp__ExitProcess@4]")
 
@@ -151,25 +145,32 @@ class CallFunctionStatement(NameMangling, CodeGenerator):
         if contains(mangled_name, self._function_name):
             self._function_name = mangled_name[self._function_name]
         for i in range(len(self._args)):
-            if isinstance(self._args[i], VariableScalar) and contains(mangled_name, self._args[i].value):
-                self._args[i].name_mangling(function_name, mangled_name)
+            self._args[i].name_mangling(function_name, mangled_name)
 
     def windows_code(self, code_builder, program_state):
         for arg in reversed(self._args):
-            code_builder.add_instruction("mov", "eax", "[%s]" % arg.value)
+            arg.windows_code(code_builder, program_state)
             code_builder.add_instruction("push", "eax")
-        code_builder.add_instruction("add", "esp", str(4 * (len(self._args) + 1)))
         code_builder.add_instruction("call", self._function_name)
         code_builder.add_instruction("sub", "esp", "8")
         code_builder.add_instruction("pop", "eax")
-        code_builder.add_instruction("add", "esp", "4")
+        code_builder.add_instruction("add", "esp", str(4 * (len(self._args) + 1)))
 
     def value_type(self, program_state):
-        return program_state.get_function(self._function_name).value_type(program_state)
+        if not program_state.contains_function(self._function_name):
+            raise ValueError("no function \"%s\" in scope" % self.__unmangling())
+        return program_state.get_function(self._function_name).value_type()
+
+    def __unmangling(self):
+        try:
+            underscore_index = self._function_name.rindex("_")
+            return self._function_name[underscore_index + 1:]
+        except ValueError:
+            return self._function_name
 
     def __str__(self):
         args = "" if self._args is None else "_".join(str(arg) for arg in self._args)
-        return "%s(%s)" % (self._function_name, args)
+        return "%s_%s_" % (self._function_name, args)
 
 
 class CallReadFunction(CallFunctionStatement):

@@ -34,16 +34,19 @@ class Function(StatementsContainer):
 
     def windows_code(self, code_builder, program_state):
         program_state.set_function_name(self._name)
+        program_state.add_function(self)
         code_builder.add_label(self.name)
-        code_builder.add_instruction("sub", "esp", str(4 * len(self._params)))
-        for statement in self:
-            statement.windows_code(code_builder, program_state)
+        code_builder.add_instruction("add", "esp", "4")
+        for pop_i in range(len(self._params)):
+            self[pop_i].windows_code(code_builder, program_state)
+        code_builder.add_instruction("sub", "esp", str(4 * (len(self._params) + 1)))
+        for statement_i in range(len(self._params), len(self)):
+            self[statement_i].windows_code(code_builder, program_state)
         code_builder.add_instruction("add", "esp", "4")
         code_builder.add_instruction("ret")
         program_state.set_function_name("")
 
-    @property
-    def value_type(self):
+    def value_type(self, program_state=None):
         return self._return_type
 
     def __str__(self):
@@ -68,8 +71,7 @@ class MainFunction(Function):
                 statement.windows_code(code_builder, program_state)
         program_state.set_function_name("")
 
-    @property
-    def value_type(self):
+    def value_type(self, program_state=None):
         return None
 
 
@@ -95,8 +97,7 @@ class ReadFunction(Function):
     def get_label(self):
         return "__%s_%s" % (self._name, str(self._params[0]))
 
-    @property
-    def value_type(self):
+    def value_type(self, program_state=None):
         return None
 
 
@@ -112,7 +113,6 @@ class WriteFunction(Function):
         code_builder.add_extern("__imp__printf")
         code_builder.add_label(self.get_label())
         self._params[0].windows_code(code_builder, program_state)
-        # code_builder.add_instruction("mov", "eax", "[%s]" % self._params[0].value)
         code_builder.add_instruction("push", "eax")
         code_builder.add_instruction("push", format_string[0])
         code_builder.add_instruction("call", "[__imp__printf]")
@@ -124,6 +124,5 @@ class WriteFunction(Function):
     def get_label(self):
         return "__%s_%s" % (self._name, str(self._params[0]))
 
-    @property
-    def value_type(self):
+    def value_type(self, program_state=None):
         return None

@@ -33,4 +33,4 @@ class Type(Enum):
         elif type_name == Type.boolean.name:
             return Type.boolean
         else:
-            raise ValueError("Language is not supported type %s" % type_name)
+            raise ValueError("language is not supported type %s" % type_name)
