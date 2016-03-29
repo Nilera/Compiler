@@ -1,10 +1,10 @@
 from operator import contains
 
-from CodeGenerator import CodeGenerator
-from NameMangling import NameMangling
+from entity.CodeGenerator import CodeGenerator
 from entity.Expression import Operator, BooleanBinaryOperator
 from entity.Function import ReadFunction, WriteFunction
-from entity.Scalar import VariableScalar, BoolScalar
+from entity.NameMangling import NameMangling
+from entity.Scalar import VariableScalar, BoolScalar, Scalar
 from entity.StatementsContainer import StatementsContainer
 from entity.Type import Type
 
@@ -38,6 +38,9 @@ class WhileStatement(StatementsContainer):
             statement.windows_code(code_builder, program_state)
         code_builder.add_instruction("jmp", label)
         code_builder.add_label(exit_label)
+
+    def value_type(self, program_state):
+        return None
 
     def __str__(self):
         return "while %s \n" % str(self.__condition) + super().__str__()
@@ -76,6 +79,9 @@ class IfStatement(StatementsContainer):
             statement.windows_code(code_builder, program_state)
         code_builder.add_label(exit_label)
 
+    def value_type(self, program_state):
+        return None
+
     def __str__(self):
         else_statement = "" if self.__else_statement is None else str(self.__else_statement)
         return "if %s \n" % str(self.__condition) + super().__str__() + else_statement
@@ -89,6 +95,9 @@ class ElseStatement(StatementsContainer):
     def windows_code(self, code_builder, program_state):
         for statement in self:
             statement.windows_code(code_builder, program_state)
+
+    def value_type(self, program_state):
+        return None
 
     def __str__(self):
         return "else\n" + "\n".join("\t%d  %s" % (i, str(self[i])) for i in range(len(self)))
@@ -114,6 +123,9 @@ class ReturnStatement(NameMangling, CodeGenerator):
             code_builder.add_instruction("push", self.__expression.value)
         if is_main:
             code_builder.add_instruction("call", "[__imp__ExitProcess@4]")
+
+    def value_type(self, program_state):
+        return None
 
     def __str__(self):
         return "return %s" % str(self.__expression)
@@ -152,25 +164,29 @@ class CallFunctionStatement(NameMangling, CodeGenerator):
         code_builder.add_instruction("pop", "eax")
         code_builder.add_instruction("add", "esp", "4")
 
-    def __str__(self):
-        args = "" if self._args is None else ", ".join(str(arg) for arg in self._args)
-        return "%s(%s)" % (self._function_name, args)
+    def value_type(self, program_state):
+        return program_state.get_function(self._function_name).value_type(program_state)
 
-    @staticmethod
-    def _convert_args(program_state, raw_args):
-        args = []
-        for var_scalar in raw_args:
-            args.append(program_state.get_variable(var_scalar.value))
-        return args
+    def __str__(self):
+        args = "" if self._args is None else "_".join(str(arg) for arg in self._args)
+        return "%s(%s)" % (self._function_name, args)
 
 
 class CallReadFunction(CallFunctionStatement):
     def __init__(self, function_name, args):
         super(CallReadFunction, self).__init__(function_name, args)
 
+    def value_type(self, program_state):
+        return None
+
     def windows_code(self, code_builder, program_state):
-        read_fun = ReadFunction(None, self._function_name,
-                                CallFunctionStatement._convert_args(program_state, self._args))
+        if len(self._args) != 1:
+            raise SyntaxError(
+                "actual and formal argument lists of function read is differ in length\nrequired: 1\nfound: %d" % len(
+                    self._args))
+        if not isinstance(self._args[0], VariableScalar):
+            raise SyntaxError("function read cannot be applied to given arguments\nrequired: variable name")
+        read_fun = ReadFunction(None, self._function_name, self._args)
         code_builder.add_instruction("call", read_fun.get_label())
         code_builder.add_global_function(read_fun)
 
@@ -180,14 +196,33 @@ class CallWriteFunction(CallFunctionStatement):
         super(CallWriteFunction, self).__init__(function_name, args)
 
     def windows_code(self, code_builder, program_state):
-        write_fun = WriteFunction(None, self._function_name,
-                                  CallFunctionStatement._convert_args(program_state, self._args))
+        if len(self._args) != 1:
+            raise SyntaxError(
+                "actual and formal argument lists of function write is differ in length\nrequired: 1\nfound: %d" % len(
+                    self._args))
+        if not isinstance(self._args[0], (Scalar, CallFunctionStatement)):
+            raise SyntaxError("function write cannot be applied to given arguments\nrequired: int or boolean")
+        write_fun = WriteFunction(None, self._function_name, self._args)
         code_builder.add_instruction("call", write_fun.get_label())
         code_builder.add_global_function(write_fun)
 
-    @staticmethod
-    def __convert_args(program_state, raw_args):
-        args = []
-        for var_scalar in raw_args:
-            args.append(program_state.get_variable(var_scalar.value))
-        return args
+    def value_type(self, program_state):
+        return None
+
+
+class CallPopFunction(CallFunctionStatement):
+    FUNCTION_NAME = "__pop"
+
+    def __init__(self, function_name, args=None):
+        super(CallPopFunction, self).__init__(function_name, args)
+
+    def name_mangling(self, function_name, mangled_name):
+        self._args[0].name_mangling(function_name, mangled_name)
+
+    def windows_code(self, code_builder, program_state):
+        self._args[0].windows_code(code_builder, program_state)
+        code_builder.add_instruction("pop", "eax")
+        code_builder.add_instruction("mov", "[%s]" % self._args[0].name, "eax")
+
+    def value_type(self, program_state):
+        return None

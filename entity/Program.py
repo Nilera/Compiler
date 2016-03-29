@@ -1,6 +1,6 @@
-from CodeGenerator import CodeGenerator
-from NameMangling import NameMangling
+from entity.CodeGenerator import CodeGenerator
 from entity.Function import Function
+from entity.NameMangling import NameMangling
 from entity.StatementsContainer import StatementsContainer
 
 
@@ -22,3 +22,6 @@ class Program(StatementsContainer):
         for statement in self:
             if isinstance(statement, CodeGenerator):
                 statement.windows_code(code_builder, program_state)
+
+    def value_type(self, program_state):
+        return None

@@ -1,7 +1,8 @@
-from CodeGenerator import CodeGenerator
-from NameMangling import NameMangling
+from entity.CodeGenerator import CodeGenerator
+from entity.NameMangling import NameMangling
 from entity.Scalar import BoolScalar, VariableScalar
 from entity.Scalar import IntScalar
+from entity.Type import Type
 
 
 def get_expression(sign, left=None, right=None):
@@ -46,6 +47,9 @@ class Operator(NameMangling, CodeGenerator):
     def windows_code(self, code_builder, program_state):
         raise NotImplementedError
 
+    def value_type(self, program_state):
+        raise NotImplementedError
+
 
 class AssignmentOperator(Operator):
     def __init__(self, name, expression):
@@ -64,6 +68,9 @@ class AssignmentOperator(Operator):
     def __str__(self):
         return "%s = %s" % (self.__name, self.__expression)
 
+    def value_type(self, program_state):
+        raise NotImplementedError
+
 
 class UnaryOperator(Operator):
     def __init__(self, value):
@@ -75,6 +82,9 @@ class UnaryOperator(Operator):
 
     def windows_code(self, code_builder, program_state):
         raise NotImplementedError
+
+    def value_type(self, program_state):
+        return Type.int
 
     def __get_sign(self):
         raise NotImplementedError
@@ -145,6 +155,9 @@ class BinaryOperator(Operator):
     def windows_code_operator(self, code_builder, program_state):
         raise NotImplementedError
 
+    def value_type(self, program_state):
+        return Type.int
+
     def _get_sign(self):
         raise NotImplementedError
 
@@ -166,6 +179,9 @@ class BooleanBinaryOperator(BinaryOperator):
 
     def _get_instruction(self):
         raise NotImplementedError
+
+    def value_type(self, program_state):
+        return Type.boolean
 
     def _get_sign(self):
         raise NotImplementedError

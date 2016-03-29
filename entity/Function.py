@@ -18,6 +18,9 @@ class Function(StatementsContainer):
         self._return_type = return_type
         self._name = name
         self._params = [] if params is None else params
+        for param in self._params:
+            from entity.Statement import CallPopFunction
+            self.add(CallPopFunction(CallPopFunction.FUNCTION_NAME, [param]))
         self.add_all([] if function_state is None else function_state)
 
     @property
@@ -28,22 +31,20 @@ class Function(StatementsContainer):
         prev_name = self._name
         self._name = "_%s" % self._name
         mangled_name[prev_name] = self._name
-        for param in self._params:
-            param.name_mangling(self._name, {})
 
     def windows_code(self, code_builder, program_state):
         program_state.set_function_name(self._name)
         code_builder.add_label(self.name)
         code_builder.add_instruction("sub", "esp", str(4 * len(self._params)))
-        for param in self._params:
-            param.windows_code(code_builder, program_state)
-            code_builder.add_instruction("pop", "eax")
-            code_builder.add_instruction("mov", "[%s]" % param.name, "eax")
         for statement in self:
             statement.windows_code(code_builder, program_state)
         code_builder.add_instruction("add", "esp", "4")
         code_builder.add_instruction("ret")
         program_state.set_function_name("")
+
+    @property
+    def value_type(self):
+        return self._return_type
 
     def __str__(self):
         params = "" if self._params is None else ", ".join(var.name for var in self._params)
@@ -52,6 +53,9 @@ class Function(StatementsContainer):
 
 class MainFunction(Function):
     FUNCTION_NAME = "main"
+
+    def __init__(self, return_type, name, params=None, function_state=None):
+        super(MainFunction, self).__init__(return_type, name, params, function_state)
 
     def windows_code(self, code_builder, program_state):
         program_state.set_function_name(self._name)
@@ -64,8 +68,9 @@ class MainFunction(Function):
                 statement.windows_code(code_builder, program_state)
         program_state.set_function_name("")
 
-    def __init__(self, return_type, name, params=None, function_state=None):
-        super(MainFunction, self).__init__(return_type, name, params, function_state)
+    @property
+    def value_type(self):
+        return None
 
 
 class ReadFunction(Function):
@@ -76,10 +81,10 @@ class ReadFunction(Function):
 
     def windows_code(self, code_builder, program_state):
         program_state.set_function_name(self._name)
-        format_string = self._params[0].value_type.format_string()
+        format_string = self._params[0].value_type(program_state).format_string()
         code_builder.add_extern("__imp__scanf")
         code_builder.add_label(self.get_label())
-        code_builder.add_instruction("push", self._params[0].name)
+        code_builder.add_instruction("push", self._params[0].value)
         code_builder.add_instruction("push", format_string[0])
         code_builder.add_instruction("call", "[__imp__scanf]")
         code_builder.add_instruction("add", "esp", "8")
@@ -88,7 +93,11 @@ class ReadFunction(Function):
         program_state.set_function_name("")
 
     def get_label(self):
-        return "__%s_%s" % (self._name, self._params[0].name)
+        return "__%s_%s" % (self._name, str(self._params[0]))
+
+    @property
+    def value_type(self):
+        return None
 
 
 class WriteFunction(Function):
@@ -99,10 +108,11 @@ class WriteFunction(Function):
 
     def windows_code(self, code_builder, program_state):
         program_state.set_function_name(self._name)
-        format_string = self._params[0].value_type.format_string()
+        format_string = self._params[0].value_type(program_state).format_string()
         code_builder.add_extern("__imp__printf")
         code_builder.add_label(self.get_label())
-        code_builder.add_instruction("mov", "eax", "[%s]" % self._params[0].name)
+        self._params[0].windows_code(code_builder, program_state)
+        # code_builder.add_instruction("mov", "eax", "[%s]" % self._params[0].value)
         code_builder.add_instruction("push", "eax")
         code_builder.add_instruction("push", format_string[0])
         code_builder.add_instruction("call", "[__imp__printf]")
@@ -112,4 +122,8 @@ class WriteFunction(Function):
         program_state.set_function_name("")
 
     def get_label(self):
-        return "__%s_%s" % (self._name, self._params[0].name)
+        return "__%s_%s" % (self._name, str(self._params[0]))
+
+    @property
+    def value_type(self):
+        return None
