@@ -4,10 +4,8 @@ from entity.StatementsContainer import StatementsContainer
 def get_function(return_type, name, params=None, function_state=None):
     if name == MainFunction.FUNCTION_NAME:
         return MainFunction(return_type, name, params, function_state)
-    elif name == ReadFunction.FUNCTION_NAME:
-        raise NameError("The name of the function \"%s\" is already taken" % name)
-    elif name == WriteFunction.FUNCTION_NAME:
-        raise NameError("The name of the function \"%s\" is already taken" % name)
+    elif name == ReadFunction.FUNCTION_NAME or name == WriteFunction.FUNCTION_NAME:
+        raise NameError("The name of the function \"%s\" is already taken by standard function" % name)
     else:
         return Function(return_type, name, params, function_state)
 
@@ -15,6 +13,7 @@ def get_function(return_type, name, params=None, function_state=None):
 class Function(StatementsContainer):
     def __init__(self, return_type, name, params=None, function_state=None):
         super(Function, self).__init__()
+        self._validate(return_type, name, params, function_state)
         self._return_type = return_type
         self._name = name
         self._params = [] if params is None else params
@@ -22,6 +21,16 @@ class Function(StatementsContainer):
             from entity.Statement import CallPopFunction
             self.add(CallPopFunction(CallPopFunction.FUNCTION_NAME, [param]))
         self.add_all([] if function_state is None else function_state)
+
+    def _validate(self, return_type, name, params=None, function_state=None):
+        if return_type is None:
+            raise SyntaxError("return type of function %s couldn't be void" % name)
+        try:
+            from entity.Statement import ReturnStatement
+            statements = [] if function_state is None else function_state
+            next(x for x in statements if isinstance(x, ReturnStatement))
+        except StopIteration:
+            raise SyntaxError("function %s has no return statement" % name)
 
     @property
     def name(self):
@@ -60,15 +69,25 @@ class MainFunction(Function):
     def __init__(self, return_type, name, params=None, function_state=None):
         super(MainFunction, self).__init__(return_type, name, params, function_state)
 
+    def _validate(self, return_type, name, params=None, function_state=None):
+        if return_type is not None:
+            raise SyntaxError(
+                "function main must return a value of type void, please define the main function as:\nvoid main()")
+        if params is not None:
+            raise SyntaxError("function main not found, please define the main function as:\n void main()")
+        try:
+            from entity.Statement import ReturnStatement
+            statements = [] if function_state is None else function_state
+            next(x for x in statements if isinstance(x, ReturnStatement))
+            raise SyntaxError("function %s shouldn't have return statement" % name)
+        except StopIteration:
+            pass
+
     def windows_code(self, code_builder, program_state):
         program_state.set_function_name(self._name)
         code_builder.add_label(self.name)
         for statement in self:
-            from entity.Statement import ReturnStatement
-            if isinstance(statement, ReturnStatement):
-                statement.windows_code(code_builder, program_state, True)
-            else:
-                statement.windows_code(code_builder, program_state)
+            statement.windows_code(code_builder, program_state)
         program_state.set_function_name("")
 
     def value_type(self, program_state=None):
@@ -80,6 +99,9 @@ class ReadFunction(Function):
 
     def __init__(self, return_type, name, params, function_state=None):
         super(ReadFunction, self).__init__(return_type, name, params, function_state)
+
+    def _validate(self, return_type, name, params=None, function_state=None):
+        pass
 
     def windows_code(self, code_builder, program_state):
         program_state.set_function_name(self._name)
@@ -106,6 +128,9 @@ class WriteFunction(Function):
 
     def __init__(self, return_type, name, params, function_state=None):
         super(WriteFunction, self).__init__(return_type, name, params, function_state)
+
+    def _validate(self, return_type, name, params=None, function_state=None):
+        pass
 
     def windows_code(self, code_builder, program_state):
         program_state.set_function_name(self._name)

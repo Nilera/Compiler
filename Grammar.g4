@@ -28,6 +28,8 @@ programElement returns [element = None]
 functionDeclaration returns [function = None]
     : valueType Identifier formalParameters block
     {$function = get_function($valueType.value_type, $Identifier.text, $formalParameters.params, $block.statements)}
+    | 'void' Identifier formalParameters block
+    {$function = get_function(None, $Identifier.text, $formalParameters.params, $block.statements)}
     ;
 
 formalParameters returns [params = None]

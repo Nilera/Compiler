@@ -110,13 +110,9 @@ class ReturnStatement(NameMangling, CodeGenerator):
     def name_mangling(self, function_name, mangled_name):
         self.__expression.name_mangling(function_name, mangled_name)
 
-    def windows_code(self, code_builder, program_state, is_main=False):
-        if is_main:
-            code_builder.add_extern("__imp__ExitProcess@4")
+    def windows_code(self, code_builder, program_state):
         self.__expression.windows_code(code_builder, program_state)
         code_builder.add_instruction("push", "eax")
-        if is_main:
-            code_builder.add_instruction("call", "[__imp__ExitProcess@4]")
 
     def value_type(self, program_state):
         return None
