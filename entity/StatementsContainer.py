@@ -23,7 +23,7 @@ class StatementsContainer(NameMangling, CodeGenerator):
         for statement in self:
             statement.name_mangling(function_name, mangled_name)
 
-    def windows_code(self, code_generator, program_state):
+    def code(self, code_generator, program_state):
         raise NotImplementedError
 
     def value_type(self, program_state):

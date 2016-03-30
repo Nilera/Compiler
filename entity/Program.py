@@ -18,10 +18,10 @@ class Program(StatementsContainer):
                     if isinstance(state, NameMangling):
                         state.name_mangling(function.name, function_name_mangling)
 
-    def windows_code(self, code_builder, program_state):
+    def code(self, code_builder, program_state):
         for statement in self:
             if isinstance(statement, CodeGenerator):
-                statement.windows_code(code_builder, program_state)
+                statement.code(code_builder, program_state)
 
     def value_type(self, program_state):
         return None

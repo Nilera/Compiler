@@ -2,7 +2,7 @@ from operator import contains
 
 from entity.CodeGenerator import CodeGenerator
 from entity.Expression import BooleanBinaryOperator
-from entity.Function import ReadFunction, WriteFunction
+from entity.Function import ReadFunction, WriteFunction, MainFunction
 from entity.NameMangling import NameMangling
 from entity.Scalar import VariableScalar, BoolScalar, Scalar
 from entity.StatementsContainer import StatementsContainer
@@ -19,7 +19,7 @@ class WhileStatement(StatementsContainer):
         self.__condition.name_mangling(function_name, mangled_name)
         super().name_mangling(function_name, mangled_name)
 
-    def windows_code(self, code_builder, program_state):
+    def code(self, code_builder, program_state):
         label = "%s_while_%d" % (program_state.function_name, program_state.get_while_number())
         exit_label = "%s_exit" % label
         code_builder.add_label(label)
@@ -29,13 +29,13 @@ class WhileStatement(StatementsContainer):
                 and program_state.get_variable(self.__condition.value).type_value == Type.boolean:
             code_builder.add_instruction("mov", "eax", "[%s]" % self.__condition.value)
         elif isinstance(self.__condition, BooleanBinaryOperator):
-            self.__condition.windows_code(code_builder, program_state)
+            self.__condition.code(code_builder, program_state)
         else:
             raise SyntaxError("while condition should be boolean value or boolean expression")
         code_builder.add_instruction("cmp", "eax", "0")
         code_builder.add_instruction("je", exit_label)
         for statement in self:
-            statement.windows_code(code_builder, program_state)
+            statement.code(code_builder, program_state)
         code_builder.add_instruction("jmp", label)
         code_builder.add_label(exit_label)
 
@@ -64,7 +64,7 @@ class IfStatement(StatementsContainer):
         self.__condition.name_mangling(function_name, mangled_name)
         super().name_mangling(function_name, mangled_name)
 
-    def windows_code(self, code_builder, program_state):
+    def code(self, code_builder, program_state):
         label = "%s_if_%d" % (program_state.function_name, program_state.get_if_number())
         exit_label = "%s_exit" % label
         if isinstance(self.__condition, BoolScalar):
@@ -73,17 +73,17 @@ class IfStatement(StatementsContainer):
                 and program_state.get_variable(self.__condition.value).type_value == Type.boolean:
             code_builder.add_instruction("mov", "eax", "[%s]" % self.__condition.value)
         elif isinstance(self.__condition, BooleanBinaryOperator):
-            self.__condition.windows_code(code_builder, program_state)
+            self.__condition.code(code_builder, program_state)
         else:
             raise SyntaxError("while condition should be boolean value or boolean expression")
         code_builder.add_instruction("cmp", "eax", "1")
         code_builder.add_instruction("je", label)
         if self.__else_statement is not None:
-            self.__else_statement.windows_code(code_builder, program_state)
+            self.__else_statement.code(code_builder, program_state)
         code_builder.add_instruction("jmp", exit_label)
         code_builder.add_label(label)
         for statement in self:
-            statement.windows_code(code_builder, program_state)
+            statement.code(code_builder, program_state)
         code_builder.add_label(exit_label)
 
     def value_type(self, program_state):
@@ -102,9 +102,9 @@ class ElseStatement(StatementsContainer):
         super(ElseStatement, self).__init__()
         self.add_all(statements)
 
-    def windows_code(self, code_builder, program_state):
+    def code(self, code_builder, program_state):
         for statement in self:
-            statement.windows_code(code_builder, program_state)
+            statement.code(code_builder, program_state)
 
     def value_type(self, program_state):
         return None
@@ -123,8 +123,8 @@ class ReturnStatement(NameMangling, CodeGenerator):
     def name_mangling(self, function_name, mangled_name):
         self.__expression.name_mangling(function_name, mangled_name)
 
-    def windows_code(self, code_builder, program_state):
-        self.__expression.windows_code(code_builder, program_state)
+    def code(self, code_builder, program_state):
+        self.__expression.code(code_builder, program_state)
         code_builder.add_instruction("push", "eax")
 
     def value_type(self, program_state):
@@ -138,7 +138,9 @@ class ReturnStatement(NameMangling, CodeGenerator):
 
 
 def get_call_function_statement(function_name, args=None):
-    if function_name == ReadFunction.FUNCTION_NAME:
+    if function_name == MainFunction.FUNCTION_NAME:
+        raise SyntaxError("call main function is forbidden")
+    elif function_name == ReadFunction.FUNCTION_NAME:
         return CallReadFunction(function_name, args)
     elif function_name == WriteFunction.FUNCTION_NAME:
         return CallWriteFunction(function_name, args)
@@ -159,9 +161,9 @@ class CallFunctionStatement(NameMangling, CodeGenerator):
         for i in range(len(self._args)):
             self._args[i].name_mangling(function_name, mangled_name)
 
-    def windows_code(self, code_builder, program_state):
+    def code(self, code_builder, program_state):
         for arg in reversed(self._args):
-            arg.windows_code(code_builder, program_state)
+            arg.code(code_builder, program_state)
             code_builder.add_instruction("push", "eax")
         code_builder.add_instruction("call", self._function_name)
         code_builder.add_instruction("sub", "esp", "8")
@@ -189,7 +191,7 @@ class CallReadFunction(CallFunctionStatement):
     def value_type(self, program_state):
         return None
 
-    def windows_code(self, code_builder, program_state):
+    def code(self, code_builder, program_state):
         if len(self._args) != 1:
             raise SyntaxError(
                 "actual and formal argument lists of function read is differ in length\nrequired: 1\nfound: %d" % len(
@@ -205,7 +207,7 @@ class CallWriteFunction(CallFunctionStatement):
     def __init__(self, function_name, args):
         super(CallWriteFunction, self).__init__(function_name, args)
 
-    def windows_code(self, code_builder, program_state):
+    def code(self, code_builder, program_state):
         if len(self._args) != 1:
             raise SyntaxError(
                 "actual and formal argument lists of function write is differ in length\nrequired: 1\nfound: %d" % len(
@@ -229,8 +231,8 @@ class CallPopFunction(CallFunctionStatement):
     def name_mangling(self, function_name, mangled_name):
         self._args[0].name_mangling(function_name, mangled_name)
 
-    def windows_code(self, code_builder, program_state):
-        self._args[0].windows_code(code_builder, program_state)
+    def code(self, code_builder, program_state):
+        self._args[0].code(code_builder, program_state)
         code_builder.add_instruction("pop", "eax")
         code_builder.add_instruction("mov", "[%s]" % self._args[0].name, "eax")
 

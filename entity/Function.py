@@ -1,3 +1,4 @@
+from Platform import Platform
 from entity.NameMangling import NameMangling
 from entity.StatementsContainer import StatementsContainer
 
@@ -38,16 +39,16 @@ class Function(StatementsContainer):
         self._name = "_%s" % self._name
         mangled_name[prev_name] = self._name
 
-    def windows_code(self, code_builder, program_state):
+    def code(self, code_builder, program_state):
         program_state.set_function_name(self._name)
         program_state.add_function(self)
         code_builder.add_label(self.name)
         code_builder.add_instruction("add", "esp", "4")
         for pop_i in range(len(self._params)):
-            self[pop_i].windows_code(code_builder, program_state)
+            self[pop_i].code(code_builder, program_state)
         code_builder.add_instruction("sub", "esp", str(4 * (len(self._params) + 1)))
         for statement_i in range(len(self._params), len(self)):
-            self[statement_i].windows_code(code_builder, program_state)
+            self[statement_i].code(code_builder, program_state)
         code_builder.add_instruction("add", "esp", "4")
         code_builder.add_instruction("ret")
         program_state.set_function_name("")
@@ -79,11 +80,20 @@ class MainFunction(Function):
         if has_return_statement is None or has_return_statement:
             raise SyntaxError("function %s shouldn't have return statement" % name)
 
-    def windows_code(self, code_builder, program_state):
+    def code(self, code_builder, program_state):
         program_state.set_function_name(self._name)
-        code_builder.add_label(self.name)
+        if code_builder.platform == Platform.win32:
+            code_builder.add_label("_%s" % self.FUNCTION_NAME)
+        else:
+            code_builder.add_label(self.FUNCTION_NAME)
         for statement in self:
-            statement.windows_code(code_builder, program_state)
+            statement.code(code_builder, program_state)
+        if code_builder.platform == Platform.win32:
+            code_builder.add_extern("__imp__ExitProcess@4")
+            code_builder.add_instruction("push", "0")
+            code_builder.add_instruction("call", "[__imp__ExitProcess@4]")
+        else:
+            code_builder.add_instruction("ret")
         program_state.set_function_name("")
 
     def value_type(self, program_state=None):
@@ -99,14 +109,20 @@ class ReadFunction(Function):
     def _validate(self, return_type, name, params=None, function_state=None):
         pass
 
-    def windows_code(self, code_builder, program_state):
+    def code(self, code_builder, program_state):
         program_state.set_function_name(self._name)
         format_string = self._params[0].value_type(program_state).format_string()
-        code_builder.add_extern("__imp__scanf")
+        if code_builder.platform == Platform.win32:
+            code_builder.add_extern("__imp__scanf")
+        else:
+            code_builder.add_extern("scanf")
         code_builder.add_label(self.get_label())
         code_builder.add_instruction("push", self._params[0].value)
         code_builder.add_instruction("push", format_string[0])
-        code_builder.add_instruction("call", "[__imp__scanf]")
+        if code_builder.platform == Platform.win32:
+            code_builder.add_instruction("call", "[__imp__scanf]")
+        else:
+            code_builder.add_instruction("call", "scanf")
         code_builder.add_instruction("add", "esp", "8")
         code_builder.add_instruction("ret")
         code_builder.add_data(format_string[0], format_string[1], format_string[2])
@@ -128,15 +144,21 @@ class WriteFunction(Function):
     def _validate(self, return_type, name, params=None, function_state=None):
         pass
 
-    def windows_code(self, code_builder, program_state):
+    def code(self, code_builder, program_state):
         program_state.set_function_name(self._name)
         format_string = self._params[0].value_type(program_state).format_string()
-        code_builder.add_extern("__imp__printf")
+        if code_builder.platform == Platform.win32:
+            code_builder.add_extern("__imp__printf")
+        else:
+            code_builder.add_extern("printf")
         code_builder.add_label(self.get_label())
-        self._params[0].windows_code(code_builder, program_state)
+        self._params[0].code(code_builder, program_state)
         code_builder.add_instruction("push", "eax")
         code_builder.add_instruction("push", format_string[0])
-        code_builder.add_instruction("call", "[__imp__printf]")
+        if code_builder.platform == Platform.win32:
+            code_builder.add_instruction("call", "[__imp__printf]")
+        else:
+            code_builder.add_instruction("call", "printf")
         code_builder.add_instruction("add", "esp", "8")
         code_builder.add_instruction("ret")
         code_builder.add_data(format_string[0], format_string[1], format_string[2])

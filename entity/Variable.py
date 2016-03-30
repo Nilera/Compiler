@@ -26,7 +26,7 @@ class Variable(NameMangling, CodeGenerator):
             self.__expression.name_mangling(function_name, mangled_name)
         mangled_name[prev_name] = self.__name
 
-    def windows_code(self, code_builder, program_state):
+    def code(self, code_builder, program_state):
         program_state.add_variable(self)
         if self.expression is None:
             code_builder.add_data(self.name, "dw", self.value_type().default_value())
@@ -44,11 +44,11 @@ class Variable(NameMangling, CodeGenerator):
                 code_builder.add_instruction("mov", "[%s]" % self.name, "eax")
             elif isinstance(self.expression, Operator):
                 code_builder.add_data(self.name, "dw", self.value_type().default_value())
-                self.expression.windows_code(code_builder, program_state)
+                self.expression.code(code_builder, program_state)
                 code_builder.add_instruction("mov", "[%s]" % self.name, "eax")
             elif isinstance(self.expression, CallFunctionStatement):
                 code_builder.add_data(self.name, "dw", self.value_type().default_value())
-                self.expression.windows_code(code_builder, program_state)
+                self.expression.code(code_builder, program_state)
                 code_builder.add_instruction("mov", "[%s]" % self.name, "eax")
 
     def value_type(self, program_state=None):

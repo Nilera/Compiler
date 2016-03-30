@@ -27,7 +27,7 @@ class Scalar(NameMangling, CodeGenerator, Returnable):
     def name_mangling(self, function_name, mangled_name):
         pass
 
-    def windows_code(self, code_builder, program_state):
+    def code(self, code_builder, program_state):
         code_builder.add_instruction("mov", "eax", self.value)
 
     def value_type(self, program_state):
@@ -48,7 +48,7 @@ class VariableScalar(Scalar):
         if contains(mangled_name, self._value):
             self._value = mangled_name[self._value]
 
-    def windows_code(self, code_builder, program_state):
+    def code(self, code_builder, program_state):
         code_builder.add_instruction("mov", "eax", "[%s]" % self._value)
 
     def value_type(self, program_state):

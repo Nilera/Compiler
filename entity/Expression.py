@@ -44,7 +44,7 @@ class Operator(NameMangling, CodeGenerator):
     def name_mangling(self, function_name, mangled_name):
         raise NotImplementedError
 
-    def windows_code(self, code_builder, program_state):
+    def code(self, code_builder, program_state):
         raise NotImplementedError
 
     def value_type(self, program_state):
@@ -64,13 +64,13 @@ class AssignmentOperator(Operator):
         self.__name.name_mangling(function_name, mangled_name)
         self.__expression.name_mangling(function_name, mangled_name)
 
-    def windows_code(self, code_builder, program_state):
+    def code(self, code_builder, program_state):
         var_type = program_state.get_variable(self.__name.value).value_type()
         expr_type = self.__expression.value_type(program_state)
         if var_type != expr_type:
             raise ValueError(
                 "%s expression has incorrect type <%s> = <%s>" % (self.unmangling(), var_type, expr_type))
-        self.__expression.windows_code(code_builder, program_state)
+        self.__expression.code(code_builder, program_state)
         code_builder.add_instruction("mov", "[%s]" % self.__name.value, "eax")
 
     def value_type(self, program_state):
@@ -91,11 +91,11 @@ class UnaryOperator(Operator):
     def name_mangling(self, function_name, mangled_name):
         self._value.name_mangling(function_name, mangled_name)
 
-    def windows_code(self, code_builder, program_state):
+    def code(self, code_builder, program_state):
         if self._value.value_type(program_state) != Type.int:
             raise ValueError("incorrect expression %s, unary operator \'%s\' can be applied only for int" % (
                 self.unmangling(), self.__get_sign()))
-        self._value.windows_code(code_builder, program_state)
+        self._value.code(code_builder, program_state)
 
     def value_type(self, program_state):
         return Type.int
@@ -122,8 +122,8 @@ class UnaryMinus(UnaryOperator):
     def __init__(self, value):
         super(UnaryMinus, self).__init__(value)
 
-    def windows_code(self, code_builder, program_state):
-        super().windows_code(code_builder, program_state)
+    def code(self, code_builder, program_state):
+        super().code(code_builder, program_state)
         code_builder.add_instruction("neg", "eax")
 
     def __get_sign(self):
@@ -140,7 +140,7 @@ class BinaryOperator(Operator):
         self._left.name_mangling(function_name, mangled_name)
         self._right.name_mangling(function_name, mangled_name)
 
-    def windows_code(self, code_builder, program_state):
+    def code(self, code_builder, program_state):
         left_type = self._left.value_type(program_state)
         right_type = self._right.value_type(program_state)
         if left_type != right_type:
@@ -151,14 +151,14 @@ class BinaryOperator(Operator):
         elif isinstance(self._left, VariableScalar):
             code_builder.add_instruction("mov", "eax", "[%s]" % self._left.value)
         else:
-            self._left.windows_code(code_builder, program_state)
+            self._left.code(code_builder, program_state)
         code_builder.add_instruction("push", "eax")
         if isinstance(self._right, (IntScalar, BoolScalar)):
             code_builder.add_instruction("mov", "eax", self._right.value)
         elif isinstance(self._right, VariableScalar):
             code_builder.add_instruction("mov", "eax", "[%s]" % self._right.value)
         else:
-            self._right.windows_code(code_builder, program_state)
+            self._right.code(code_builder, program_state)
         code_builder.add_instruction("mov", "ebx", "eax")
         code_builder.add_instruction("pop", "eax")
         self.windows_code_operator(code_builder, program_state)
@@ -335,7 +335,7 @@ class Or(BooleanBinaryOperator):
     def __init__(self, left, right):
         super(Or, self).__init__(left, right)
 
-    def windows_code(self, code_builder, program_state):
+    def code(self, code_builder, program_state):
         code_builder.add_instruction("and", "eax", "ebx")
 
     def _get_instruction(self):
@@ -349,7 +349,7 @@ class And(BooleanBinaryOperator):
     def __init__(self, left, right):
         super(And, self).__init__(left, right)
 
-    def windows_code(self, code_builder, program_state):
+    def code(self, code_builder, program_state):
         code_builder.add_instruction("or", "eax", "ebx")
 
     def _get_instruction(self):
