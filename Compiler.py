@@ -37,7 +37,7 @@ def main(argv):
                 output_file = arg
         input_file = args[0]
         asm_file = os.path.splitext(input_file)[0] + ".asm"
-        obj_file = os.path.splitext(input_file)[0] + ".obj" if platform == Platform.win32 else ".o"
+        obj_file = os.path.splitext(input_file)[0] + (".obj" if platform == Platform.win32 else ".o")
         if output_file == '':
             output_file = os.path.splitext(input_file)[0] + "." + platform.output_file_extension()
     except getopt.GetoptError:
