@@ -30,23 +30,33 @@ class Variable(NameMangling, CodeGenerator):
         program_state.add_variable(self)
         if self.expression is None:
             code_builder.add_data(self.name, "dw", self.value_type().default_value())
-        elif isinstance(self.expression, (IntScalar, BoolScalar)):
-            code_builder.add_data(self.name, "dw", self.expression.value)
-        elif isinstance(self.expression, VariableScalar):
-            code_builder.add_data(self.name, "dw", self.value_type().default_value())
-            code_builder.add_instruction("mov", "eax", "[%s]" % self.expression.value)
-            code_builder.add_instruction("mov", "[%s]" % self.name, "eax")
-        elif isinstance(self.expression, Operator):
-            code_builder.add_data(self.name, "dw", self.value_type().default_value())
-            self.expression.windows_code(code_builder, program_state)
-            code_builder.add_instruction("mov", "[%s]" % self.name, "eax")
-        elif isinstance(self.expression, CallFunctionStatement):
-            code_builder.add_data(self.name, "dw", self.value_type().default_value())
-            self.expression.windows_code(code_builder, program_state)
-            code_builder.add_instruction("mov", "[%s]" % self.name, "eax")
+        else:
+            var_type = self.value_type()
+            expr_type = self.expression.value_type(program_state)
+            if var_type != expr_type:
+                raise ValueError(
+                    "%s expression has incorrect type <%s> = <%s>" % (self.unmangling(), var_type, expr_type))
+            if isinstance(self.expression, (IntScalar, BoolScalar)):
+                code_builder.add_data(self.name, "dw", self.expression.value)
+            elif isinstance(self.expression, VariableScalar):
+                code_builder.add_data(self.name, "dw", self.value_type().default_value())
+                code_builder.add_instruction("mov", "eax", "[%s]" % self.expression.value)
+                code_builder.add_instruction("mov", "[%s]" % self.name, "eax")
+            elif isinstance(self.expression, Operator):
+                code_builder.add_data(self.name, "dw", self.value_type().default_value())
+                self.expression.windows_code(code_builder, program_state)
+                code_builder.add_instruction("mov", "[%s]" % self.name, "eax")
+            elif isinstance(self.expression, CallFunctionStatement):
+                code_builder.add_data(self.name, "dw", self.value_type().default_value())
+                self.expression.windows_code(code_builder, program_state)
+                code_builder.add_instruction("mov", "[%s]" % self.name, "eax")
 
     def value_type(self, program_state=None):
         return self.__value_type
+
+    def unmangling(self):
+        return "%s %s = %s" % (
+            str(self.__value_type), NameMangling.unmangling(self.__name), self.__expression.unmangling())
 
     def __str__(self):
         assign = "" if self.__expression is None else " = %s" % str(self.__expression)

@@ -111,8 +111,8 @@ expression returns [expr = None]
     {$expr = $primary.expr}
     | e=expression '(' (expressionList{tmp_var = $expressionList.args})? ')'
     {$expr = get_call_function_statement($e.text, tmp_var)}
-    | sign=('+'|'-') expression
-    {$expr = get_expression($sign.text, None, $expression.expr)}
+    | sign=('+'|'-') e=expression
+    {$expr = get_expression($sign.text, None, $e.expr)}
     | e1=expression sign=('*'|'/'|'%') e2=expression
     {$expr = get_expression($sign.text, $e1.expr, $e2.expr)}
     | e1=expression sign=('+'|'-') e2=expression

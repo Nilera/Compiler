@@ -33,6 +33,9 @@ class Scalar(NameMangling, CodeGenerator, Returnable):
     def value_type(self, program_state):
         raise NotImplementedError
 
+    def unmangling(self):
+        return self._value
+
     def __str__(self):
         return str(self._value)
 
@@ -50,15 +53,11 @@ class VariableScalar(Scalar):
 
     def value_type(self, program_state):
         if not program_state.contains_variable(self._value):
-            raise ValueError("no variable \"%s\" in scope" % self.__unmangling())
+            raise ValueError("no variable \"%s\" in scope" % self.unmangling())
         return program_state.get_variable(self._value).value_type()
 
-    def __unmangling(self):
-        try:
-            underscore_index = self._value.rindex("_")
-            return self._value[underscore_index + 1:]
-        except ValueError:
-            return self._value
+    def unmangling(self):
+        return NameMangling.unmangling(self._value)
 
 
 class IntScalar(Scalar):
@@ -73,7 +72,7 @@ class IntScalar(Scalar):
 
 class BoolScalar(Scalar):
     def __init__(self, value):
-        if value != "true" or value != "false":
+        if value != "true" and value != "false":
             raise ValueError("%s is not boolean value" % value)
         super(BoolScalar, self).__init__(value)
 

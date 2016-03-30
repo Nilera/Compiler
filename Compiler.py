@@ -25,6 +25,8 @@ def main():
         # print(str(parser.program_states))
     except SyntaxError as e:
         print("Syntax error:", e.msg, file=sys.stderr)
+    except ValueError as e:
+        print("Value error:", e, file=sys.stderr)
 
 
 main()

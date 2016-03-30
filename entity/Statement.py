@@ -42,6 +42,9 @@ class WhileStatement(StatementsContainer):
     def value_type(self, program_state):
         return None
 
+    def unmangling(self):
+        return ""
+
     def __str__(self):
         return "while %s \n" % str(self.__condition) + super().__str__()
 
@@ -82,6 +85,9 @@ class IfStatement(StatementsContainer):
     def value_type(self, program_state):
         return None
 
+    def unmangling(self):
+        return ""
+
     def __str__(self):
         else_statement = "" if self.__else_statement is None else str(self.__else_statement)
         return "if %s \n" % str(self.__condition) + super().__str__() + else_statement
@@ -98,6 +104,9 @@ class ElseStatement(StatementsContainer):
 
     def value_type(self, program_state):
         return None
+
+    def unmangling(self):
+        return ""
 
     def __str__(self):
         return "else\n" + "\n".join("\t%d  %s" % (i, str(self[i])) for i in range(len(self)))
@@ -116,6 +125,9 @@ class ReturnStatement(NameMangling, CodeGenerator):
 
     def value_type(self, program_state):
         return None
+
+    def unmangling(self):
+        return ""
 
     def __str__(self):
         return "return %s" % str(self.__expression)
@@ -154,15 +166,12 @@ class CallFunctionStatement(NameMangling, CodeGenerator):
 
     def value_type(self, program_state):
         if not program_state.contains_function(self._function_name):
-            raise ValueError("no function \"%s\" in scope" % self.__unmangling())
+            raise ValueError("no function \"%s\" in scope" % self.unmangling())
         return program_state.get_function(self._function_name).value_type()
 
-    def __unmangling(self):
-        try:
-            underscore_index = self._function_name.rindex("_")
-            return self._function_name[underscore_index + 1:]
-        except ValueError:
-            return self._function_name
+    def unmangling(self):
+        args = "" if self._args is None else ", ".join(arg.unmangling() for arg in self._args)
+        return "%s(%s)" % (NameMangling.unmangling(self._function_name), args)
 
     def __str__(self):
         args = "" if self._args is None else "_".join(str(arg) for arg in self._args)

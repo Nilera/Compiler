@@ -1,3 +1,4 @@
+from entity.NameMangling import NameMangling
 from entity.StatementsContainer import StatementsContainer
 
 
@@ -57,6 +58,9 @@ class Function(StatementsContainer):
 
     def value_type(self, program_state=None):
         return self._return_type
+
+    def unmangling(self):
+        return NameMangling.unmangling(self._name)
 
     def __str__(self):
         params = "" if self._params is None else ", ".join(var.name for var in self._params)

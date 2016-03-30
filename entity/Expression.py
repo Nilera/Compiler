@@ -50,6 +50,9 @@ class Operator(NameMangling, CodeGenerator):
     def value_type(self, program_state):
         raise NotImplementedError
 
+    def unmangling(self):
+        raise NotImplementedError
+
 
 class AssignmentOperator(Operator):
     def __init__(self, name, expression):
@@ -62,14 +65,22 @@ class AssignmentOperator(Operator):
         self.__expression.name_mangling(function_name, mangled_name)
 
     def windows_code(self, code_builder, program_state):
+        var_type = program_state.get_variable(self.__name.value).value_type()
+        expr_type = self.__expression.value_type(program_state)
+        if var_type != expr_type:
+            raise ValueError(
+                "%s expression has incorrect type <%s> = <%s>" % (self.unmangling(), var_type, expr_type))
         self.__expression.windows_code(code_builder, program_state)
         code_builder.add_instruction("mov", "[%s]" % self.__name.value, "eax")
 
-    def __str__(self):
-        return "%s = %s" % (self.__name, self.__expression)
-
     def value_type(self, program_state):
         raise NotImplementedError
+
+    def unmangling(self):
+        return "%s = %s" % (self.__name.unmangling(), self.__expression.unmangling())
+
+    def __str__(self):
+        return "%s = %s" % (self.__name, self.__expression)
 
 
 class UnaryOperator(Operator):
@@ -81,13 +92,19 @@ class UnaryOperator(Operator):
         self._value.name_mangling(function_name, mangled_name)
 
     def windows_code(self, code_builder, program_state):
-        raise NotImplementedError
+        if self._value.value_type(program_state) != Type.int:
+            raise ValueError("incorrect expression %s, unary operator \'%s\' can be applied only for int" % (
+                self.unmangling(), self.__get_sign()))
+        self._value.windows_code(code_builder, program_state)
 
     def value_type(self, program_state):
         return Type.int
 
     def __get_sign(self):
         raise NotImplementedError
+
+    def unmangling(self):
+        return "%s%s" % (self.__get_sign(), NameMangling.unmangling(self._value))
 
     def __str__(self):
         return "%s%s" % (self.__get_sign(), self._value)
@@ -96,12 +113,6 @@ class UnaryOperator(Operator):
 class UnaryPlus(UnaryOperator):
     def __init__(self, value):
         super(UnaryPlus, self).__init__(value)
-
-    def windows_code(self, code_builder, program_state):
-        if isinstance(self._value, (IntScalar, BoolScalar)):
-            code_builder.add_instruction("mov", "eax", self._value.value)
-        elif isinstance(self._value, VariableScalar):
-            code_builder.add_instruction("mov", "eax", "[%s]" % self._value.value)
 
     def __get_sign(self):
         return "+"
@@ -112,13 +123,8 @@ class UnaryMinus(UnaryOperator):
         super(UnaryMinus, self).__init__(value)
 
     def windows_code(self, code_builder, program_state):
-        if isinstance(self._value, (IntScalar, BoolScalar)):
-            code_builder.add_instruction("mov", "eax", self._value.value)
-        elif isinstance(self._value, VariableScalar):
-            code_builder.add_instruction("mov", "eax", "[%s]" % self._value.value)
-            code_builder.add_instruction("neg", "eax")
-        else:
-            code_builder.add_instruction("neg", "eax")
+        super().windows_code(code_builder, program_state)
+        code_builder.add_instruction("neg", "eax")
 
     def __get_sign(self):
         return "-"
@@ -135,6 +141,11 @@ class BinaryOperator(Operator):
         self._right.name_mangling(function_name, mangled_name)
 
     def windows_code(self, code_builder, program_state):
+        left_type = self._left.value_type(program_state)
+        right_type = self._right.value_type(program_state)
+        if left_type != right_type:
+            raise ValueError("%s: operator %s cannot be applied for <%s>, <%s>" % (
+                self.unmangling(), self._get_sign(), left_type, right_type))
         if isinstance(self._left, (IntScalar, BoolScalar)):
             code_builder.add_instruction("mov", "eax", self._left.value)
         elif isinstance(self._left, VariableScalar):
@@ -161,6 +172,9 @@ class BinaryOperator(Operator):
     def _get_sign(self):
         raise NotImplementedError
 
+    def unmangling(self):
+        return "%s %s %s" % (self._left.unmangling(), self._get_sign(), self._right.unmangling())
+
     def __str__(self):
         return "%s %s %s" % (self._left, self._get_sign(), self._right)
 
@@ -170,6 +184,11 @@ class BooleanBinaryOperator(BinaryOperator):
         super(BooleanBinaryOperator, self).__init__(left, right)
 
     def windows_code_operator(self, code_builder, program_state):
+        left_type = self._left.value_type(program_state)
+        right_type = self._right.value_type(program_state)
+        if left_type != right_type:
+            raise ValueError("%s: operator %s cannot be applied for <%s>, <%s>" % (
+                self.unmangling(), self._get_sign(), left_type, right_type))
         label = "%s_bool_op_%d_skip" % (program_state.function_name, program_state.get_if_number())
         code_builder.add_instruction("cmp", "eax", "ebx")
         code_builder.add_instruction("mov", "eax", "1")

@@ -29,5 +29,8 @@ class StatementsContainer(NameMangling, CodeGenerator):
     def value_type(self, program_state):
         raise NotImplementedError
 
+    def unmangling(self):
+        return NotImplementedError
+
     def __str__(self):
         return "\n".join("%d  %s" % (i, str(self[i])) for i in range(len(self)))

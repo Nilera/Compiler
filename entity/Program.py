@@ -25,3 +25,6 @@ class Program(StatementsContainer):
 
     def value_type(self, program_state):
         return None
+
+    def unmangling(self):
+        pass
