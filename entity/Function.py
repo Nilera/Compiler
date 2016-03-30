@@ -25,13 +25,9 @@ class Function(StatementsContainer):
 
     def _validate(self, return_type, name, params=None, function_state=None):
         if return_type is None:
-            raise SyntaxError("return type of function %s couldn't be void" % name)
-        try:
-            from entity.Statement import ReturnStatement
-            statements = [] if function_state is None else function_state
-            next(x for x in statements if isinstance(x, ReturnStatement))
-        except StopIteration:
-            raise SyntaxError("function %s has no return statement" % name)
+            raise SyntaxError("return type of function %s couldn't be void" % NameMangling.unmangling(name))
+        if not self.has_return_statement(function_state):
+            raise SyntaxError("function %s: missing return statement" % NameMangling.unmangling(name))
 
     @property
     def name(self):
@@ -79,13 +75,9 @@ class MainFunction(Function):
                 "function main must return a value of type void, please define the main function as:\nvoid main()")
         if params is not None:
             raise SyntaxError("function main not found, please define the main function as:\n void main()")
-        try:
-            from entity.Statement import ReturnStatement
-            statements = [] if function_state is None else function_state
-            next(x for x in statements if isinstance(x, ReturnStatement))
+        has_return_statement = self.has_return_statement(function_state)
+        if has_return_statement is None or has_return_statement:
             raise SyntaxError("function %s shouldn't have return statement" % name)
-        except StopIteration:
-            pass
 
     def windows_code(self, code_builder, program_state):
         program_state.set_function_name(self._name)

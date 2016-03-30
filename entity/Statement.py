@@ -56,6 +56,10 @@ class IfStatement(StatementsContainer):
         self.add_all(statements)
         self.__else_statement = else_statement
 
+    @property
+    def else_statement(self):
+        return self.__else_statement
+
     def name_mangling(self, function_name, mangled_name):
         self.__condition.name_mangling(function_name, mangled_name)
         super().name_mangling(function_name, mangled_name)
