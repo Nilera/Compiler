@@ -34,6 +34,10 @@ class Function(StatementsContainer):
     def name(self):
         return self._name
 
+    @property
+    def params(self):
+        return self._params
+
     def name_mangling(self, supported_information, mangled_name):
         prev_name = self._name
         self._name = "_%s" % self._name
@@ -105,6 +109,7 @@ class ReadFunction(Function):
 
     def __init__(self, return_type, name, params, function_state=None):
         super(ReadFunction, self).__init__(return_type, name, params, function_state)
+        self.__io_number = None
 
     def _validate(self, return_type, name, params=None, function_state=None):
         pass
@@ -116,7 +121,7 @@ class ReadFunction(Function):
             code_builder.add_extern("__imp__scanf")
         else:
             code_builder.add_extern("scanf")
-        code_builder.add_label(self.get_label())
+        code_builder.add_label(self.get_label(program_state))
         code_builder.add_instruction("push", self._params[0].value)
         code_builder.add_instruction("push", format_string[0])
         if code_builder.platform == Platform.win32:
@@ -128,8 +133,10 @@ class ReadFunction(Function):
         code_builder.add_data(format_string[0], format_string[1], format_string[2])
         program_state.set_function_name("")
 
-    def get_label(self):
-        return "__%s_%s" % (self._name, str(self._params[0]))
+    def get_label(self, program_state):
+        if self.__io_number is None:
+            self.__io_number = program_state.get_io_function_number()
+        return "__%s_%d" % (self._name, self.__io_number)
 
     def value_type(self, program_state=None):
         return None
@@ -140,6 +147,7 @@ class WriteFunction(Function):
 
     def __init__(self, return_type, name, params, function_state=None):
         super(WriteFunction, self).__init__(return_type, name, params, function_state)
+        self.__io_number = None
 
     def _validate(self, return_type, name, params=None, function_state=None):
         pass
@@ -151,7 +159,7 @@ class WriteFunction(Function):
             code_builder.add_extern("__imp__printf")
         else:
             code_builder.add_extern("printf")
-        code_builder.add_label(self.get_label())
+        code_builder.add_label(self.get_label(program_state))
         self._params[0].code(code_builder, program_state)
         code_builder.add_instruction("push", "eax")
         code_builder.add_instruction("push", format_string[0])
@@ -164,8 +172,10 @@ class WriteFunction(Function):
         code_builder.add_data(format_string[0], format_string[1], format_string[2])
         program_state.set_function_name("")
 
-    def get_label(self):
-        return "__%s_%s" % (self._name, str(self._params[0]))
+    def get_label(self, program_state):
+        if self.__io_number is None:
+            self.__io_number = program_state.get_io_function_number()
+        return "__%s_%d" % (self._name, self.__io_number)
 
     def value_type(self, program_state=None):
         return None

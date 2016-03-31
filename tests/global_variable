@@ -1,0 +1,19 @@
+int a = 25;
+
+int dec_a() {
+    int b = a;
+    b = b - 1;
+    if (b == a - 1) {
+        a = a - 1;
+    } else {
+        // nothing to do here
+    }
+    return true;
+}
+
+void main() {
+    while (a > 0) {
+        dec_a();
+    }
+    write(a);
+}

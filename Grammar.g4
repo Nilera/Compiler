@@ -61,11 +61,11 @@ blockStatement returns [state = None]
 
 statement returns [state = None]
     @init{tmp_var = None}
-    : 'if' parExpression brackedStatement
-        ('else' brackedStatement{tmp_var = ElseStatement($brackedStatement.statements)})?
-    {$state = IfStatement($parExpression.expr, $brackedStatement.statements, tmp_var)}
-    | 'while' parExpression brackedStatement
-    {$state = WhileStatement($parExpression.expr, $brackedStatement.statements)}
+    : 'if' parExpression b1=brackedStatement
+        ('else' b2=brackedStatement{tmp_var = ElseStatement($b2.statements)})?
+    {$state = IfStatement($parExpression.expr, $b1.statements, tmp_var)}
+    | 'while' parExpression b1=brackedStatement
+    {$state = WhileStatement($parExpression.expr, $b1.statements)}
     | 'return' (expression{tmp_var = $expression.expr})? ';'
     {$state = ReturnStatement(tmp_var)}
     | callFunction ';'

@@ -1,0 +1,9 @@
+boolean fun() {
+    int a = 4;
+    return a == 4;
+    a = 3;
+}
+
+void main() {
+    fun();
+}

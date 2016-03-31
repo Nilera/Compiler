@@ -1,0 +1,16 @@
+int fun() {
+    int a = 5;
+    boolean b;
+    if (a == 5) {
+        b = true;
+        return a;
+    } else {
+        if (a < 5) {
+            return -a;
+        }
+    }
+}
+
+void main() {
+    fun();
+}

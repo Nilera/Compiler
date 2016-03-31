@@ -54,6 +54,11 @@ class CodeBuilder(object):
             function.code(self, self.__program_state)
         global_main = MainFunction.FUNCTION_NAME if self.__platform == Platform.elf32 else "_%s" % MainFunction.FUNCTION_NAME
 
+        if len(self.__main_function_instruction) == 0:
+            main_function = MainFunction(None, MainFunction.FUNCTION_NAME, None, [])
+            main_function.name_mangling(None, {})
+            main_function.code(self, self.__program_state)
+
         externs = "\n".join(x for x in self.__externs)
         text = "section .text\n" + \
                "global %s\n\n" % global_main + \

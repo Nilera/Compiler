@@ -3,9 +3,9 @@
 import getopt
 import os
 import sys
+from subprocess import Popen
 
 from antlr4 import CommonTokenStream
-from subprocess import Popen
 
 from CodeBuilder import CodeBuilder
 from GrammarLexer import GrammarLexer, FileStream
@@ -46,24 +46,28 @@ def main(argv):
 
     try:
         run_compile(platform, input_file, asm_file)
+        link_executable_file(platform, asm_file, obj_file, output_file)
     except SyntaxError as e:
         print("Syntax error:", e.msg, file=sys.stderr)
     except ValueError as e:
         print("Value error:", e, file=sys.stderr)
 
+
+def link_executable_file(platform, asm_file, obj_file, output_file):
     if platform == Platform.win32:
         print("unfortunately couldn't make executable file for %s platform" % platform)
     else:
-        yasm_cmd = ["yasm", "-f", platform.name, asm_file]
+        yasm_cmd = ["yasm", "-f", platform.name, "-o", obj_file, asm_file]
         p = Popen(yasm_cmd)
         p.wait()
-
+        os.remove(asm_file)
         gcc_cmd = ["gcc", "-o", output_file, obj_file]
         p = Popen(gcc_cmd)
         p.wait()
+        os.remove(obj_file)
 
 
-def run_compile(platform, input_file, output_file):
+def run_compile(platform, input_file, asm_file):
     input_stream = FileStream(input_file)
 
     lexer = GrammarLexer(input_stream)
@@ -77,7 +81,7 @@ def run_compile(platform, input_file, output_file):
     builder = CodeBuilder(state, platform)
     parser.program_states.code(builder, state)
 
-    output_file = open(output_file, 'w')
+    output_file = open(asm_file, 'w')
     print(str(builder), file=output_file)
     output_file.close()
 

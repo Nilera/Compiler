@@ -1,0 +1,7 @@
+int fun(int a, int b, int c) {
+    // do something
+}
+
+void main() {
+    fun(1, 2, true);
+}

@@ -70,7 +70,7 @@ class IfStatement(StatementsContainer):
         if isinstance(self.__condition, BoolScalar):
             code_builder.add_instruction("mov", "eax", self.__condition.value)
         elif isinstance(self.__condition, VariableScalar) \
-                and program_state.get_variable(self.__condition.value).type_value == Type.boolean:
+                and program_state.get_variable(self.__condition.value).value_type() == Type.boolean:
             code_builder.add_instruction("mov", "eax", "[%s]" % self.__condition.value)
         elif isinstance(self.__condition, BooleanBinaryOperator):
             self.__condition.code(code_builder, program_state)
@@ -162,6 +162,14 @@ class CallFunctionStatement(NameMangling, CodeGenerator):
             self._args[i].name_mangling(function_name, mangled_name)
 
     def code(self, code_builder, program_state):
+        params = program_state.get_function(self._function_name).params
+        if len(params) != len(self._args) or not self.__is_valid_params(params, program_state):
+            raise SyntaxError(
+                "function %s cannot be applied to given types\nrequired: %s\nfound: %s" % (
+                    self._function_name,
+                    "no arguments" if len(params) == 0 else ", ".join(str(x.value_type(program_state)) for x in params),
+                    "no arguments" if len(params) == 0 else ", ".join(
+                        str(x.value_type(program_state)) for x in self._args)))
         for arg in reversed(self._args):
             arg.code(code_builder, program_state)
             code_builder.add_instruction("push", "eax")
@@ -169,6 +177,14 @@ class CallFunctionStatement(NameMangling, CodeGenerator):
         code_builder.add_instruction("sub", "esp", "8")
         code_builder.add_instruction("pop", "eax")
         code_builder.add_instruction("add", "esp", str(4 * (len(self._args) + 1)))
+
+    def __is_valid_params(self, params, program_state):
+        for i in range(len(params)):
+            arg1 = params[i].value_type(program_state)
+            arg2 = self._args[i].value_type(program_state)
+            if arg1 != arg2:
+                return False
+        return True
 
     def value_type(self, program_state):
         if not program_state.contains_function(self._function_name):
@@ -180,8 +196,8 @@ class CallFunctionStatement(NameMangling, CodeGenerator):
         return "%s(%s)" % (NameMangling.unmangling(self._function_name), args)
 
     def __str__(self):
-        args = "" if self._args is None else "_".join(str(arg) for arg in self._args)
-        return "%s_%s_" % (self._function_name, args)
+        args = "" if self._args is None else ", ".join(str(arg) for arg in self._args)
+        return "%s(%s)" % (self._function_name, args)
 
 
 class CallReadFunction(CallFunctionStatement):
@@ -199,7 +215,7 @@ class CallReadFunction(CallFunctionStatement):
         if not isinstance(self._args[0], VariableScalar):
             raise SyntaxError("function read cannot be applied to given arguments\nrequired: variable name")
         read_fun = ReadFunction(None, self._function_name, self._args)
-        code_builder.add_instruction("call", read_fun.get_label())
+        code_builder.add_instruction("call", read_fun.get_label(program_state))
         code_builder.add_global_function(read_fun)
 
 
@@ -215,7 +231,7 @@ class CallWriteFunction(CallFunctionStatement):
         if not isinstance(self._args[0], (Scalar, CallFunctionStatement)):
             raise SyntaxError("function write cannot be applied to given arguments\nrequired: int or boolean")
         write_fun = WriteFunction(None, self._function_name, self._args)
-        code_builder.add_instruction("call", write_fun.get_label())
+        code_builder.add_instruction("call", write_fun.get_label(program_state))
         code_builder.add_global_function(write_fun)
 
     def value_type(self, program_state):

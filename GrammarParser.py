@@ -719,7 +719,8 @@ class GrammarParser ( Parser ):
             self.parser = parser
             self.state =  None
             self._parExpression = None # ParExpressionContext
-            self._brackedStatement = None # BrackedStatementContext
+            self.b1 = None # BrackedStatementContext
+            self.b2 = None # BrackedStatementContext
             self._expression = None # ExpressionContext
             self._callFunction = None # CallFunctionContext
 
@@ -772,18 +773,18 @@ class GrammarParser ( Parser ):
                 self.state = 113
                 localctx._parExpression = self.parExpression()
                 self.state = 114
-                localctx._brackedStatement = self.brackedStatement()
+                localctx.b1 = self.brackedStatement()
                 self.state = 119
                 _la = self._input.LA(1)
                 if _la==GrammarParser.T__7:
                     self.state = 115
                     self.match(GrammarParser.T__7)
                     self.state = 116
-                    localctx._brackedStatement = self.brackedStatement()
-                    tmp_var = ElseStatement(localctx._brackedStatement.statements)
+                    localctx.b2 = self.brackedStatement()
+                    tmp_var = ElseStatement(localctx.b2.statements)
 
 
-                localctx.state = IfStatement(localctx._parExpression.expr, localctx._brackedStatement.statements, tmp_var)
+                localctx.state = IfStatement(localctx._parExpression.expr, localctx.b1.statements, tmp_var)
 
             elif token in [GrammarParser.T__8]:
                 self.enterOuterAlt(localctx, 2)
@@ -792,8 +793,8 @@ class GrammarParser ( Parser ):
                 self.state = 124
                 localctx._parExpression = self.parExpression()
                 self.state = 125
-                localctx._brackedStatement = self.brackedStatement()
-                localctx.state = WhileStatement(localctx._parExpression.expr, localctx._brackedStatement.statements)
+                localctx.b1 = self.brackedStatement()
+                localctx.state = WhileStatement(localctx._parExpression.expr, localctx.b1.statements)
 
             elif token in [GrammarParser.T__9]:
                 self.enterOuterAlt(localctx, 3)
