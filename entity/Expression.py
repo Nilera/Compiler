@@ -65,6 +65,8 @@ class AssignmentOperator(Operator):
         self.__expression.name_mangling(function_name, mangled_name)
 
     def code(self, code_builder, program_state):
+        if not program_state.contains_variable(self.__name.value):
+            raise SyntaxError("no variable \"%s\" in scope" % self.__name.unmangling())
         var_type = program_state.get_variable(self.__name.value).value_type()
         expr_type = self.__expression.value_type(program_state)
         if var_type != expr_type:

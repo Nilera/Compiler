@@ -162,6 +162,8 @@ class CallFunctionStatement(NameMangling, CodeGenerator):
             self._args[i].name_mangling(function_name, mangled_name)
 
     def code(self, code_builder, program_state):
+        if not program_state.contains_function(self._function_name):
+            raise SyntaxError("no function \"%s\" in scope" % NameMangling.unmangling(self._function_name))
         params = program_state.get_function(self._function_name).params
         if len(params) != len(self._args) or not self.__is_valid_params(params, program_state):
             raise SyntaxError(

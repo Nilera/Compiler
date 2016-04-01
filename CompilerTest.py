@@ -42,10 +42,7 @@ def abstract_test_incorrect_program(input_file):
     p = Popen(power_cmd, stderr=PIPE)
     result = p.stderr.readline().decode("UTF-8")
     p.stderr.close()
-    if result.startswith("Syntax error") or result.startswith("Value error"):
-        return True
-    else:
-        return False
+    return result.startswith("Syntax error") or result.startswith("Value error")
 
 
 class CompilerTest(unittest.TestCase):
@@ -106,6 +103,14 @@ class CompilerTest(unittest.TestCase):
 
     def test_deadcode(self):
         result = abstract_test_incorrect_program("tests/deadcode")
+        self.assertEqual(result, True)
+
+    def test_function_not_in_scope(self):
+        result = abstract_test_incorrect_program("tests/function_not_in_scope")
+        self.assertEqual(result, True)
+
+    def test_variable_not_in_scope(self):
+        result = abstract_test_incorrect_program("tests/variable_not_in_scope")
         self.assertEqual(result, True)
 
 
