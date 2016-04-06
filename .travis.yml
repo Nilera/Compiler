@@ -9,4 +9,4 @@ before_install:
 install:
   - "pip install antlr4-python3-runtime"
 
-script: ./CompilerTest.py
+script: python ./CompilerTest.py
