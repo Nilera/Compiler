@@ -5,18 +5,18 @@ import os
 import sys
 from subprocess import Popen
 
+from grammar.GrammarLexer import GrammarLexer, FileStream
+from grammar.ParserError import ParserError
 from antlr4 import CommonTokenStream
 
 from CodeBuilder import CodeBuilder
-from GrammarLexer import GrammarLexer, FileStream
-from GrammarParser import GrammarParser
-from ParserError import ParserError
 from Platform import Platform
 from ProgramState import ProgramState
+from grammar.GrammarParser import GrammarParser
 
 
 def main(argv):
-    help_string = "Compiler.py -f <elf32 | win32> -o <output file>"
+    help_string = "Compiler.py -f <win32 | elf32 | elf64> -o <output file>"
 
     platform = Platform.elf32
     input_file = ''
@@ -57,11 +57,14 @@ def link_executable_file(platform, asm_file, obj_file, output_file):
     if platform == Platform.win32:
         print("unfortunately couldn't make executable file for %s platform" % platform)
     else:
-        yasm_cmd = ["yasm", "-f", platform.name, "-o", obj_file, asm_file]
+        yasm_cmd = ["yasm", "-f", Platform.elf32.name, "-o", obj_file, asm_file]
         p = Popen(yasm_cmd)
         p.wait()
-        os.remove(asm_file)
-        gcc_cmd = ["gcc", "-o", output_file, obj_file]
+        # os.remove(asm_file)
+        if platform == Platform.elf32:
+            gcc_cmd = ["gcc", "-o", output_file, obj_file]
+        else:
+            gcc_cmd = ["gcc", "-m32", "-o", output_file, obj_file]
         p = Popen(gcc_cmd)
         p.wait()
         os.remove(obj_file)

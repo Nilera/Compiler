@@ -52,7 +52,7 @@ class CodeBuilder(object):
     def __str__(self):
         for function in self.__global_functions:
             function.code(self, self.__program_state)
-        global_main = MainFunction.FUNCTION_NAME if self.__platform == Platform.elf32 else "_%s" % MainFunction.FUNCTION_NAME
+        global_main = "_%s" % MainFunction.FUNCTION_NAME if self.__platform == Platform.win32 else MainFunction.FUNCTION_NAME
 
         if len(self.__main_function_instruction) == 0:
             main_function = MainFunction(None, MainFunction.FUNCTION_NAME, None, [])

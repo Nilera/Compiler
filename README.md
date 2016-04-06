@@ -44,12 +44,14 @@ void main() {
 * `antlr4`
 * `yasm`
 * `gcc` for Linux, `VC` for Windows
+* `g++-multilib` and `libc6-dev-i386` for Linux 64bit
 
 ## Run
 ### Linux (tested on Ubuntu 15.10 32bit)
 `python3 Compiler.py -f elf32 -o <output file>`
 
-`./<output file>`
+### Linux (tested on Ubuntu 15.10 64bit)
+`python3 Compiler.py -f elf64 -o <output file>`
 
 ### Windows (tested on Windows 10)
 `python3 Compiler.py -f win32 -o <output file>`

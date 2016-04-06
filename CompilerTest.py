@@ -6,7 +6,7 @@ from subprocess import Popen, PIPE
 
 def abstract_test_with_out(input_file, read_line=None):
     output_filename = "tmp.out"
-    power_cmd = ["python3", "Compiler.py", "-f", "elf32", "-o", output_filename, input_file]
+    power_cmd = ["python3", "Compiler.py", "-f", "elf64", "-o", output_filename, input_file]
     p = Popen(power_cmd)
     p.wait()
     p = Popen(["./%s" % output_filename], stdin=PIPE, stdout=PIPE)
@@ -21,7 +21,7 @@ def abstract_test_with_out(input_file, read_line=None):
 
 def abstract_test_correct_program(input_file, read_line=None):
     output_filename = "tmp.out"
-    power_cmd = ["python3", "Compiler.py", "-f", "elf32", "-o", output_filename, input_file]
+    power_cmd = ["python3", "Compiler.py", "-f", "elf64", "-o", output_filename, input_file]
     p = Popen(power_cmd)
     p.wait()
     p = Popen(["./%s" % output_filename], stdin=PIPE, stdout=PIPE)
@@ -38,7 +38,7 @@ def abstract_test_correct_program(input_file, read_line=None):
 
 def abstract_test_incorrect_program(input_file):
     output_filename = "tmp.out"
-    power_cmd = ["python3", "Compiler.py", "-f", "elf32", "-o", output_filename, input_file]
+    power_cmd = ["python3", "Compiler.py", "-f", "elf64", "-o", output_filename, input_file]
     p = Popen(power_cmd, stderr=PIPE)
     result = p.stderr.readline().decode("UTF-8")
     p.stderr.close()
