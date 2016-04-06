@@ -1,4 +1,4 @@
-# x86 Сompiler
+# x86 Сompiler [![Build Status](https://travis-ci.org/Nilera/Compiler.svg?branch=master)](https://travis-ci.org/Nilera/Compiler)
 
 ## Features
 * supported types: `int` and `boolean`
