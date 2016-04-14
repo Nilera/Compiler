@@ -1,9 +1,18 @@
-# Generated from D:/Python/Compiler\Grammar.g4 by ANTLR 4.5.1
+# Generated from D:/Python/Compiler/grammar\Grammar.g4 by ANTLR 4.5.1
 from antlr4 import *
 if __name__ is not None and "." in __name__:
     from .GrammarParser import GrammarParser
 else:
-    from grammar.GrammarParser import GrammarParser
+    from GrammarParser import GrammarParser
+
+from entity.Program import Program
+from entity.Variable import Variable
+from entity.Function import *
+from entity.Expression import *
+from entity.Type import Type
+from entity.Array import Array
+from entity.Scalar import *
+from entity.Statement import *
 
 
 # This class defines a complete listener for a parse tree produced by GrammarParser.
@@ -135,6 +144,15 @@ class GrammarListener(ParseTreeListener):
         pass
 
 
+    # Enter a parse tree produced by GrammarParser#primitiveType.
+    def enterPrimitiveType(self, ctx:GrammarParser.PrimitiveTypeContext):
+        pass
+
+    # Exit a parse tree produced by GrammarParser#primitiveType.
+    def exitPrimitiveType(self, ctx:GrammarParser.PrimitiveTypeContext):
+        pass
+
+
     # Enter a parse tree produced by GrammarParser#variableDeclarator.
     def enterVariableDeclarator(self, ctx:GrammarParser.VariableDeclaratorContext):
         pass
@@ -159,6 +177,15 @@ class GrammarListener(ParseTreeListener):
 
     # Exit a parse tree produced by GrammarParser#expressionList.
     def exitExpressionList(self, ctx:GrammarParser.ExpressionListContext):
+        pass
+
+
+    # Enter a parse tree produced by GrammarParser#creator.
+    def enterCreator(self, ctx:GrammarParser.CreatorContext):
+        pass
+
+    # Exit a parse tree produced by GrammarParser#creator.
+    def exitCreator(self, ctx:GrammarParser.CreatorContext):
         pass
 
 

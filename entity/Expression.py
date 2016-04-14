@@ -37,6 +37,20 @@ def get_expression(sign, left=None, right=None):
             return Or(left, right)
 
 
+# TODO: code generator etc
+class ArrayCreator(object):
+    def __init__(self, value_type, dimensions_sizes):
+        self.__value_type = value_type
+        self.__dimensions_sizes = dimensions_sizes
+
+
+# TODO: code generator etc
+class ArrayGetter(object):
+    def __init__(self, name, dimensions_sizes):
+        self.__name = name
+        self.__dimensions_sizes = dimensions_sizes
+
+
 class Operator(NameMangling, CodeGenerator):
     def __init__(self):
         super(Operator, self).__init__()

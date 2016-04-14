@@ -6,6 +6,7 @@ from entity.Variable import Variable
 from entity.Function import *
 from entity.Expression import *
 from entity.Type import Type
+from entity.Array import Array
 from entity.Scalar import *
 from entity.Statement import *
 }
@@ -60,7 +61,7 @@ blockStatement returns [state = None]
     ;
 
 statement returns [state = None]
-    @init{tmp_var = None}
+    @init {tmp_var = None}
     : 'if' parExpression b1=brackedStatement
         ('else' b2=brackedStatement{tmp_var = ElseStatement($b2.statements)})?
     {$state = IfStatement($parExpression.expr, $b1.statements, tmp_var)}
@@ -73,7 +74,7 @@ statement returns [state = None]
     ;
 
 brackedStatement returns [statements = None]
-    @init{$statements = []}
+    @init {$statements = []}
     : '{' (blockStatement{$statements.append($blockStatement.state)})* '}'
     ;
 
@@ -93,6 +94,12 @@ variableDeclaration returns [variable = None]
     ;
 
 valueType returns [value_type = None]
+    @init {dimension = 0}
+    : primitiveType (('[' ']'){dimension += 1})*
+    {$value_type = primitiveType.value_type if dimension == 0 else Array($primitiveType.value_type, dimension)}
+    ;
+
+primitiveType returns [value_type = None]
     : 'boolean'
     {$value_type = Type.boolean}
     | 'int'
@@ -100,17 +107,21 @@ valueType returns [value_type = None]
     ;
 
 variableDeclarator returns [name_value = None]
-    @init{expr = None}
+    @init {expr = None}
     : Identifier ('=' expression{expr = $expression.expr})?
     {$name_value = ($Identifier.text, expr)}
     ;
 
 expression returns [expr = None]
-    @init{tmp_var = None}
+    @init {tmp_var = None}
     : primary
     {$expr = $primary.expr}
+    | e1=expression ('[' e2=expression{tmp_var = [$e2.expr] if tmp_var is None else tmp_var.append($e2.expr)} ']')+
+    {$expr = ArrayGetter($e1.expr, tmp_var)}
     | e=expression '(' (expressionList{tmp_var = $expressionList.args})? ')'
     {$expr = get_call_function_statement($e.text, tmp_var)}
+    | 'new' creator
+    {$expr = $creator.constr}
     | sign=('+'|'-') e=expression
     {$expr = get_expression($sign.text, None, $e.expr)}
     | e1=expression sign=('*'|'/'|'%') e2=expression
@@ -130,8 +141,14 @@ expression returns [expr = None]
     ;
 
 expressionList returns [args = None]
-    @init{$args = []}
+    @init {$args = []}
     : expression{$args.append($expression.expr)} (',' expression{$args.append($expression.expr)})*
+    ;
+
+creator returns [constr = None]
+    @init {dimensions_sizes = []}
+    : primitiveType ('[' expression{dimensions_sizes.append($expression.expr)} ']')+
+    {$constr = ArrayCreator($primitiveType.value_type, dimensions_sizes)}
     ;
 
 primary returns [expr = None]
@@ -152,11 +169,10 @@ literal
     | BooleanLiteral
     ;
 
-IntegerLiteral : Number NumberSuffix? ;
+IntegerLiteral : Number ;
 BooleanLiteral : 'true' | 'false' ;
 
 fragment Number : '0' | NonZeroDigit Digit* ;
-fragment NumberSuffix : [lL] ;
 fragment Digit : '0' | NonZeroDigit ;
 fragment NonZeroDigit : [1-9] ;
 
