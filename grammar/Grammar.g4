@@ -96,7 +96,7 @@ variableDeclaration returns [variable = None]
 valueType returns [value_type = None]
     @init {dimension = 0}
     : primitiveType (('[' ']'){dimension += 1})*
-    {$value_type = primitiveType.value_type if dimension == 0 else Array($primitiveType.value_type, dimension)}
+    {$value_type = $primitiveType.value_type if dimension == 0 else Array($primitiveType.value_type, dimension)}
     ;
 
 primitiveType returns [value_type = None]

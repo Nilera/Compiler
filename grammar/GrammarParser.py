@@ -1112,7 +1112,7 @@ class GrammarParser ( Parser ):
                 self._errHandler.sync(self)
                 _la = self._input.LA(1)
 
-            localctx.value_type = primitiveType.value_type if dimension == 0 else Array(localctx._primitiveType.value_type, dimension)
+            localctx.value_type = localctx._primitiveType.value_type if dimension == 0 else Array(localctx._primitiveType.value_type, dimension)
         except RecognitionException as re:
             localctx.exception = re
             self._errHandler.reportError(self, re)

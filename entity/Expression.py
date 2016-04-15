@@ -1,3 +1,6 @@
+from operator import contains
+
+from entity.Array import Array
 from entity.CodeGenerator import CodeGenerator
 from entity.NameMangling import NameMangling
 from entity.Scalar import BoolScalar, VariableScalar
@@ -38,17 +41,58 @@ def get_expression(sign, left=None, right=None):
 
 
 # TODO: code generator etc
-class ArrayCreator(object):
+class ArrayCreator(NameMangling, CodeGenerator):
     def __init__(self, value_type, dimensions_sizes):
         self.__value_type = value_type
         self.__dimensions_sizes = dimensions_sizes
 
+    def name_mangling(self, function_name, mangled_name):
+        pass
+
+    # TODO: malloc
+    def code(self, code_builder, program_state):
+        raise NotImplementedError
+
+    def value_type(self, program_state):
+        return Array(self.__value_type, len(self.__dimensions_sizes))
+
+    def unmangling(self):
+        return "new %s%s" % (self.__value_type, "[" + "][".join(str(x) for x in self.__dimensions_sizes) + "]")
+
+    def __str__(self):
+        return self.unmangling()
+
 
 # TODO: code generator etc
-class ArrayGetter(object):
+class ArrayGetter(NameMangling, CodeGenerator):
     def __init__(self, name, dimensions_sizes):
+        super(ArrayGetter, self).__init__()
         self.__name = name
         self.__dimensions_sizes = dimensions_sizes
+
+    def name_mangling(self, function_name, mangled_name):
+        if contains(mangled_name, self.__name):
+            self.__name = mangled_name[self.__name]
+
+    def code(self, code_builder, program_state):
+        raise NotImplementedError
+
+    def value_type(self, program_state):
+        arr_var = program_state.get_variable(self.__name)
+        arr_var_type = arr_var.value_type()
+        if arr_var.dimension > len(self.__dimensions_sizes):
+            raise SyntaxError("Array required but %s found: %s" % (str(arr_var_type), self.unmangling()))
+        elif arr_var.dimension == len(self.__dimensions_sizes):
+            return arr_var_type
+        else:
+            return Array(arr_var_type, len(self.__dimensions_sizes) - arr_var.dimension)
+
+    def unmangling(self):
+        return "%s%s" % (
+            NameMangling.unmangling(self.__name), "[" + "][".join(str(x) for x in self.__dimensions_sizes) + "]")
+
+    def __str__(self):
+        return "%s%s" % (self.__name, "[" + "][".join(str(x) for x in self.__dimensions_sizes) + "]")
 
 
 class Operator(NameMangling, CodeGenerator):

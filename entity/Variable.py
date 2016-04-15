@@ -1,5 +1,5 @@
 from entity.CodeGenerator import CodeGenerator
-from entity.Expression import Operator
+from entity.Expression import Operator, ArrayCreator
 from entity.NameMangling import NameMangling
 from entity.Scalar import IntScalar, BoolScalar, VariableScalar
 from entity.Statement import CallFunctionStatement
@@ -38,6 +38,8 @@ class Variable(NameMangling, CodeGenerator):
                     "%s expression has incorrect type <%s> = <%s>" % (self.unmangling(), var_type, expr_type))
             if isinstance(self.expression, (IntScalar, BoolScalar)):
                 code_builder.add_data(self.name, "dw", self.expression.value)
+            elif isinstance(self.expression, ArrayCreator):
+                raise NotImplementedError
             elif isinstance(self.expression, VariableScalar):
                 code_builder.add_data(self.name, "dw", self.value_type().default_value())
                 code_builder.add_instruction("mov", "eax", "[%s]" % self.expression.value)
