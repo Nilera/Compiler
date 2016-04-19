@@ -104,6 +104,8 @@ primitiveType returns [value_type = None]
     {$value_type = Type.boolean}
     | 'int'
     {$value_type = Type.int}
+    | 'char'
+    {$value_type = Type.char}
     ;
 
 variableDeclarator returns [name_value = None]

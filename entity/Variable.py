@@ -1,5 +1,4 @@
 from Platform import Platform
-from entity.Array import Array
 from entity.CodeGenerator import CodeGenerator
 from entity.Expression import Operator, ArrayCreator, ArrayGetter
 from entity.NameMangling import NameMangling
@@ -30,28 +29,39 @@ class Variable(NameMangling, CodeGenerator):
 
     def code(self, code_builder, program_state):
         program_state.add_variable(self)
+        size_type = self.__value_type.size_type()
+        default_value = self.__value_type.default_value()
         if self.expression is None:
-            code_builder.add_data(self.name, "dw", self.value_type().default_value())
+            code_builder.add_data(self.__name, size_type, default_value)
         else:
-            var_type = self.value_type()
             expr_type = self.expression.value_type(program_state)
-            if var_type != expr_type:
+            if self.__value_type != expr_type:
                 raise ValueError(
-                    "%s expression has incorrect type <%s> = <%s>" % (self.unmangling(), var_type, expr_type))
+                    "%s expression has incorrect type <%s> = <%s>" % (self.unmangling(), self.__value_type, expr_type))
+            if isinstance(self.expression, ArrayCreator):
+                pass
+            elif isinstance(self.expression, ArrayGetter):
+                pass
+            elif isinstance(self.expression, (IntScalar, BoolScalar)):
+                code_builder.add_data(self.name, size_type, self.expression.value)
+            else:
+
+
+
             if isinstance(self.expression, (IntScalar, BoolScalar)):
-                code_builder.add_data(self.name, "dw", self.expression.value)
+                code_builder.add_data(self.name, size_type, self.expression.value)
             elif isinstance(self.expression, ArrayCreator):
                 if code_builder.platform == Platform.win32:
                     code_builder.add_extern("__imp__malloc")
                 else:
                     code_builder.add_extern("malloc")
-                code_builder.add_data(self.name, "dw", "0")
+                code_builder.add_data(self.name, size_type, "0")
                 program_state.set_array_name(self.name)
                 self.expression.code(code_builder, program_state)
                 program_state.set_array_name("")
                 code_builder.add_instruction("mov", "[%s]" % self.name, "eax")
             elif isinstance(self.expression, VariableScalar):
-                code_builder.add_data(self.name, "dw", self.value_type().default_value())
+                code_builder.add_data(self.name, size_type, default_value)
                 code_builder.add_instruction("mov", "eax", "[%s]" % self.expression.value)
                 code_builder.add_instruction("mov", "[%s]" % self.name, "eax")
             elif isinstance(self.expression, ArrayGetter):
@@ -61,11 +71,11 @@ class Variable(NameMangling, CodeGenerator):
                 program_state.set_array_name("")
                 code_builder.add_instruction("mov", "[%s]" % self.name, "eax")
             elif isinstance(self.expression, Operator):
-                code_builder.add_data(self.name, "dw", self.value_type().default_value())
+                code_builder.add_data(self.name, size_type, default_value)
                 self.expression.code(code_builder, program_state)
                 code_builder.add_instruction("mov", "[%s]" % self.name, "eax")
             elif isinstance(self.expression, CallFunctionStatement):
-                code_builder.add_data(self.name, "dw", self.value_type().default_value())
+                code_builder.add_data(self.name, size_type, default_value)
                 self.expression.code(code_builder, program_state)
                 code_builder.add_instruction("mov", "[%s]" % self.name, "eax")
 
