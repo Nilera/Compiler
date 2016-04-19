@@ -1,5 +1,7 @@
+from Platform import Platform
+from entity.Array import Array
 from entity.CodeGenerator import CodeGenerator
-from entity.Expression import Operator, ArrayCreator
+from entity.Expression import Operator, ArrayCreator, ArrayGetter
 from entity.NameMangling import NameMangling
 from entity.Scalar import IntScalar, BoolScalar, VariableScalar
 from entity.Statement import CallFunctionStatement
@@ -39,10 +41,24 @@ class Variable(NameMangling, CodeGenerator):
             if isinstance(self.expression, (IntScalar, BoolScalar)):
                 code_builder.add_data(self.name, "dw", self.expression.value)
             elif isinstance(self.expression, ArrayCreator):
-                raise NotImplementedError
+                if code_builder.platform == Platform.win32:
+                    code_builder.add_extern("__imp__malloc")
+                else:
+                    code_builder.add_extern("malloc")
+                code_builder.add_data(self.name, "dw", "0")
+                program_state.set_array_name(self.name)
+                self.expression.code(code_builder, program_state)
+                program_state.set_array_name("")
+                code_builder.add_instruction("mov", "[%s]" % self.name, "eax")
             elif isinstance(self.expression, VariableScalar):
                 code_builder.add_data(self.name, "dw", self.value_type().default_value())
                 code_builder.add_instruction("mov", "eax", "[%s]" % self.expression.value)
+                code_builder.add_instruction("mov", "[%s]" % self.name, "eax")
+            elif isinstance(self.expression, ArrayGetter):
+                code_builder.add_data(self.name, "dw", "0")
+                program_state.set_array_name(self.name)
+                self.expression.code_generator(code_builder, program_state)
+                program_state.set_array_name("")
                 code_builder.add_instruction("mov", "[%s]" % self.name, "eax")
             elif isinstance(self.expression, Operator):
                 code_builder.add_data(self.name, "dw", self.value_type().default_value())

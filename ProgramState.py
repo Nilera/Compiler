@@ -5,6 +5,7 @@ class ProgramState(object):
     def __init__(self, function_name=""):
         super(ProgramState, self).__init__()
         self.__function_name = function_name
+        self.__array_name = ""
         self.__variables_dict = {}
         self.__function_dict = {}
         self.__if_counter = 0
@@ -18,8 +19,15 @@ class ProgramState(object):
     def function_name(self):
         return self.__function_name
 
+    @property
+    def array_name(self):
+        return self.__array_name
+
     def set_function_name(self, function_name):
         self.__function_name = function_name
+
+    def set_array_name(self, array_name):
+        self.__array_name = array_name
 
     def add_variable(self, variable):
         self.__variables_dict[variable.name] = variable

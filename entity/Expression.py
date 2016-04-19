@@ -1,10 +1,9 @@
 from operator import contains
 
+from Platform import Platform
 from entity.Array import Array
 from entity.CodeGenerator import CodeGenerator
 from entity.NameMangling import NameMangling
-from entity.Scalar import BoolScalar, VariableScalar
-from entity.Scalar import IntScalar
 from entity.Type import Type
 
 
@@ -40,18 +39,40 @@ def get_expression(sign, left=None, right=None):
             return Or(left, right)
 
 
-# TODO: code generator etc
 class ArrayCreator(NameMangling, CodeGenerator):
     def __init__(self, value_type, dimensions_sizes):
         self.__value_type = value_type
         self.__dimensions_sizes = dimensions_sizes
 
+    def __getitem__(self, index):
+        return self.__dimensions_sizes[index]
+
+    def __len__(self):
+        return len(self.__dimensions_sizes)
+
     def name_mangling(self, function_name, mangled_name):
         pass
 
-    # TODO: malloc
     def code(self, code_builder, program_state):
-        raise NotImplementedError
+        code_builder.add_instruction("push", "1")
+        for index in range(len(self)):
+            dimension = self[index]
+            dimension.code(code_builder, program_state)
+            code_builder.add_data("%s_%d" % (program_state.array_name, index), "dw", "0")
+            code_builder.add_instruction("mov", "ebx", "eax")
+            code_builder.add_instruction("pop", "eax")
+            code_builder.add_instruction("cdq")
+            code_builder.add_instruction("imul", "ebx")
+            code_builder.add_instruction("push", "eax")
+            code_builder.add_instruction("mov", "[%s_%d]" % (program_state.array_name, index), "eax")
+        if code_builder.platform == Platform.win32:
+            code_builder.add_instruction("call", "[__imp__malloc]")
+        else:
+            code_builder.add_instruction("call", "malloc")
+        code_builder.add_instruction("test", "eax", "eax")
+        code_builder.add_instruction("jz", "_fail_malloc")
+        # TODO: add malloc fail
+        code_builder.add_instruction("add", "esp", "4")
 
     def value_type(self, program_state):
         return Array(self.__value_type, len(self.__dimensions_sizes))
@@ -63,36 +84,81 @@ class ArrayCreator(NameMangling, CodeGenerator):
         return self.unmangling()
 
 
-# TODO: code generator etc
 class ArrayGetter(NameMangling, CodeGenerator):
     def __init__(self, name, dimensions_sizes):
         super(ArrayGetter, self).__init__()
         self.__name = name
         self.__dimensions_sizes = dimensions_sizes
 
+    def __getitem__(self, index):
+        return self.__dimensions_sizes[index]
+
+    def __len__(self):
+        return len(self.__dimensions_sizes)
+
+    @property
+    def value(self):
+        return self.__name.value
+
     def name_mangling(self, function_name, mangled_name):
         if contains(mangled_name, self.__name):
             self.__name = mangled_name[self.__name]
 
     def code(self, code_builder, program_state):
-        raise NotImplementedError
+        return_type = self.value_type(program_state)
+        self.__code_get(code_builder, return_type)
+        code_builder.add_instruction("mov", "eax", "[%s]" % self.__name)
+        code_builder.add_instruction("add", "eax", "ebx")
+        if not isinstance(return_type, Array):
+            code_builder.add_instruction("mov", "eax", "[eax]")
+
+    def code_setter(self, code_builder, program_state):
+        array = self.value_type(program_state)
+        self.__code_get(code_builder, array)
+        # value in eax
+        code_builder.add_instruction("add", "ebx", "[%s]" % self.__name)
+        if isinstance(array, Array):
+            # TODO: adok
+            raise NotImplementedError
+        else:
+            code_builder.add_instruction("mov", "[ebx]", "eax")
+
+    def __code_get(self, code_builder, array):
+        array_length = 1 if isinstance(array, Type) else len(array)
+        code_builder.add_instruction("push", "eax")
+        code_builder.add_instruction("push", "0")
+        for i in range(len(self)):
+            code_builder.add_instruction("mov", "eax", str(self[i]))
+            for j in range(i + 1, array_length):
+                code_builder.add_instruction("mov", "ebx", "[%s_%d]" % (self.__name, j))
+                code_builder.add_instruction("cdq")
+                code_builder.add_instruction("imul", "ebx")
+            # TODO: mov sizeof
+            code_builder.add_instruction("mov", "ebx", "4")
+            code_builder.add_instruction("cdq")
+            code_builder.add_instruction("imul", "ebx")
+            code_builder.add_instruction("pop", "ebx")
+            code_builder.add_instruction("add", "eax", "ebx")
+            code_builder.add_instruction("push", "eax")
+        code_builder.add_instruction("pop", "ebx")
+        code_builder.add_instruction("pop", "eax")
 
     def value_type(self, program_state):
-        arr_var = program_state.get_variable(self.__name)
+        arr_var = program_state.get_variable(self.value)
         arr_var_type = arr_var.value_type()
-        if arr_var.dimension > len(self.__dimensions_sizes):
+        if arr_var_type.dimension > len(self.__dimensions_sizes):
             raise SyntaxError("Array required but %s found: %s" % (str(arr_var_type), self.unmangling()))
-        elif arr_var.dimension == len(self.__dimensions_sizes):
-            return arr_var_type
+        elif arr_var_type.dimension == len(self.__dimensions_sizes):
+            return arr_var_type.value_type
         else:
             return Array(arr_var_type, len(self.__dimensions_sizes) - arr_var.dimension)
 
     def unmangling(self):
         return "%s%s" % (
-            NameMangling.unmangling(self.__name), "[" + "][".join(str(x) for x in self.__dimensions_sizes) + "]")
+            NameMangling.unmangling(self.value), "[" + "][".join(str(x) for x in self.__dimensions_sizes) + "]")
 
     def __str__(self):
-        return "%s%s" % (self.__name, "[" + "][".join(str(x) for x in self.__dimensions_sizes) + "]")
+        return "%s%s" % (self.value, "[" + "][".join(str(x) for x in self.__dimensions_sizes) + "]")
 
 
 class Operator(NameMangling, CodeGenerator):
@@ -125,13 +191,22 @@ class AssignmentOperator(Operator):
     def code(self, code_builder, program_state):
         if not program_state.contains_variable(self.__name.value):
             raise SyntaxError("no variable \"%s\" in scope" % self.__name.unmangling())
-        var_type = program_state.get_variable(self.__name.value).value_type()
+        if isinstance(self.__name, ArrayGetter):
+            var_type = self.__name.value_type(program_state)
+        else:
+            var_type = program_state.get_variable(self.__name.value).value_type()
         expr_type = self.__expression.value_type(program_state)
         if var_type != expr_type:
             raise ValueError(
                 "%s expression has incorrect type <%s> = <%s>" % (self.unmangling(), var_type, expr_type))
         self.__expression.code(code_builder, program_state)
-        code_builder.add_instruction("mov", "[%s]" % self.__name.value, "eax")
+        # TODO: array set
+        if isinstance(var_type, Array):
+            raise NotImplementedError
+        elif isinstance(self.__name, ArrayGetter):
+            self.__name.code_setter(code_builder, program_state)
+        else:
+            code_builder.add_instruction("mov", "[%s]" % self.__name.value, "eax")
 
     def value_type(self, program_state):
         raise NotImplementedError
@@ -206,19 +281,9 @@ class BinaryOperator(Operator):
         if left_type != right_type:
             raise ValueError("%s: operator %s cannot be applied for <%s>, <%s>" % (
                 self.unmangling(), self._get_sign(), left_type, right_type))
-        if isinstance(self._left, (IntScalar, BoolScalar)):
-            code_builder.add_instruction("mov", "eax", self._left.value)
-        elif isinstance(self._left, VariableScalar):
-            code_builder.add_instruction("mov", "eax", "[%s]" % self._left.value)
-        else:
-            self._left.code(code_builder, program_state)
+        self._left.code(code_builder, program_state)
         code_builder.add_instruction("push", "eax")
-        if isinstance(self._right, (IntScalar, BoolScalar)):
-            code_builder.add_instruction("mov", "eax", self._right.value)
-        elif isinstance(self._right, VariableScalar):
-            code_builder.add_instruction("mov", "eax", "[%s]" % self._right.value)
-        else:
-            self._right.code(code_builder, program_state)
+        self._right.code(code_builder, program_state)
         code_builder.add_instruction("mov", "ebx", "eax")
         code_builder.add_instruction("pop", "eax")
         self.windows_code_operator(code_builder, program_state)

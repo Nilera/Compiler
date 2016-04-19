@@ -124,6 +124,7 @@ class ReturnStatement(NameMangling, CodeGenerator):
         self.__expression.name_mangling(function_name, mangled_name)
 
     def code(self, code_builder, program_state):
+        # TODO: array
         self.__expression.code(code_builder, program_state)
         code_builder.add_instruction("push", "eax")
 
@@ -230,7 +231,8 @@ class CallWriteFunction(CallFunctionStatement):
             raise SyntaxError(
                 "actual and formal argument lists of function write is differ in length\nrequired: 1\nfound: %d" % len(
                     self._args))
-        if not isinstance(self._args[0], (Scalar, CallFunctionStatement)):
+        # TODO: add string
+        if not isinstance(self._args[0].value_type(program_state), Type):
             raise SyntaxError("function write cannot be applied to given arguments\nrequired: int or boolean")
         write_fun = WriteFunction(None, self._function_name, self._args)
         code_builder.add_instruction("call", write_fun.get_label(program_state))
