@@ -1,13 +1,13 @@
 import os
+import subprocess
 import unittest
-
 from subprocess import Popen, PIPE
 
 
 def abstract_test_with_out(input_file, read_line=None):
     output_filename = "tmp.out"
-    power_cmd = ["python3", "Compiler.py", "-f", "elf64", "-o", output_filename, input_file]
-    p = Popen(power_cmd)
+    cmd = ["python3", "Compiler.py", "-f", "elf64", "-o", output_filename, input_file]
+    p = Popen(cmd)
     p.wait()
     p = Popen(["./%s" % output_filename], stdin=PIPE, stdout=PIPE)
     if read_line is not None:
@@ -21,27 +21,41 @@ def abstract_test_with_out(input_file, read_line=None):
 
 def abstract_test_correct_program(input_file, read_line=None):
     output_filename = "tmp.out"
-    power_cmd = ["python3", "Compiler.py", "-f", "elf64", "-o", output_filename, input_file]
-    p = Popen(power_cmd)
+    cmd = ["python3", "Compiler.py", "-f", "elf64", "-o", output_filename, input_file]
+    p = Popen(cmd)
     p.wait()
-    p = Popen(["./%s" % output_filename], stdin=PIPE, stdout=PIPE)
+    p = Popen(["./%s" % output_filename], stdin=PIPE, stdout=PIPE, stderr=PIPE)
     if read_line is not None:
         p.stdin.write(bytes(read_line, "UTF-8"))
     p.stdin.close()
-    result = p.stdout.readline().decode("UTF-8")
+    out_result = p.stdout.readline().decode("UTF-8")
+    err_result = p.stderr.readline().decode("UTF-8")
     p.stdout.close()
-    if result.startswith("Syntax error") or result.startswith("Value error"):
-        return False
+    p.stderr.close()
     os.remove(output_filename)
-    return True
+    return not is_incorrect_output(out_result) and not is_incorrect_output(err_result)
 
 
 def abstract_test_incorrect_program(input_file):
     output_filename = "tmp.out"
-    power_cmd = ["python3", "Compiler.py", "-f", "elf64", "-o", output_filename, input_file]
-    p = Popen(power_cmd, stderr=PIPE)
-    result = p.stderr.readline().decode("UTF-8")
+    cmd = ["python3", "Compiler.py", "-f", "elf64", "-o", output_filename, input_file]
+    p = Popen(cmd, stdout=PIPE, stderr=PIPE)
+    out_result = p.stdout.readline().decode("UTF-8")
+    err_result = p.stderr.readline().decode("UTF-8")
+    p.stdout.close()
     p.stderr.close()
+    if is_incorrect_output(out_result) or is_incorrect_output(err_result):
+        return True
+    p.wait()
+    try:
+        # e.g. Floating point exception (core dumped)
+        subprocess.check_call(["./%s" % output_filename])
+        return False
+    except subprocess.CalledProcessError:
+        return True
+
+
+def is_incorrect_output(result):
     return result.startswith("Syntax error") or result.startswith("Value error")
 
 
@@ -131,6 +145,10 @@ class CompilerTest(unittest.TestCase):
 
     def test_try_to_return_array(self):
         result = abstract_test_incorrect_program("tests/try_to_return_array")
+        self.assertEqual(True, result)
+
+    def test_try_to_insert_array_into_array(self):
+        result = abstract_test_incorrect_program("tests/try_to_insert_array_into_array")
         self.assertEqual(True, result)
 
 
