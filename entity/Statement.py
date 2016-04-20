@@ -4,7 +4,7 @@ from entity.CodeGenerator import CodeGenerator
 from entity.Expression import BooleanBinaryOperator
 from entity.Function import ReadFunction, WriteFunction, MainFunction
 from entity.NameMangling import NameMangling
-from entity.Scalar import VariableScalar, BoolScalar, Scalar
+from entity.Scalar import VariableScalar, BoolScalar
 from entity.StatementsContainer import StatementsContainer
 from entity.Type import Type
 

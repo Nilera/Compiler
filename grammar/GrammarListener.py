@@ -10,7 +10,7 @@ from entity.Variable import Variable
 from entity.Function import *
 from entity.Expression import *
 from entity.Type import Type
-from entity.Array import Array
+from entity.Array import *
 from entity.Scalar import *
 from entity.Statement import *
 

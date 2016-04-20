@@ -1,7 +1,6 @@
 from Platform import Platform
-from entity.Array import Array
+from entity.Array import Array, ArrayCreator, ArrayGetter
 from entity.CodeGenerator import CodeGenerator
-from entity.Expression import ArrayCreator, ArrayGetter
 from entity.NameMangling import NameMangling
 from entity.Scalar import IntScalar, BoolScalar
 
