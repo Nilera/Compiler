@@ -38,9 +38,12 @@ class Variable(NameMangling, CodeGenerator):
                     "%s expression has incorrect type <%s> = <%s>" % (self.unmangling(), self.__value_type, expr_type))
             if isinstance(self.__value_type, Array):
                 code_builder.add_data(self.name, "dd", "0")
+
+                prev_array_name = program_state.array_name
                 program_state.set_array_name(self.name)
                 self.expression.code(code_builder, program_state)
-                program_state.set_array_name("")
+                program_state.set_array_name(prev_array_name)
+
                 code_builder.add_instruction("mov", "[%s]" % self.name, "eax")
             elif isinstance(self.expression, (IntScalar, BoolScalar)):
                 code_builder.add_data(self.name, size_type, self.expression.value)

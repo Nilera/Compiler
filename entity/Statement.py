@@ -1,5 +1,6 @@
 from operator import contains
 
+from entity.Array import Array
 from entity.CodeGenerator import CodeGenerator
 from entity.Expression import BooleanBinaryOperator
 from entity.Function import ReadFunction, WriteFunction, MainFunction
@@ -124,6 +125,8 @@ class ReturnStatement(NameMangling, CodeGenerator):
         self.__expression.name_mangling(function_name, mangled_name)
 
     def code(self, code_builder, program_state):
+        if isinstance(self.__expression.value_type(program_state), Array):
+            pass
         self.__expression.code(code_builder, program_state)
         code_builder.add_instruction("push", "eax")
 

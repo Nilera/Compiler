@@ -121,6 +121,14 @@ class CompilerTest(unittest.TestCase):
         result = abstract_test_with_out("tests/simple_array")
         self.assertEqual("1234", result)
 
+    def test_array_as_function_argument(self):
+        result = abstract_test_with_out("tests/array_as_function_argument")
+        self.assertEqual("5", result)
+
+    def test_change_array_in_function(self):
+        result = abstract_test_with_out("tests/change_array_in_function")
+        self.assertEqual("10", result)
+
 
 if __name__ == '__main__':
     unittest.main()

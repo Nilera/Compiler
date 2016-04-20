@@ -106,8 +106,7 @@ class ArrayGetter(NameMangling, CodeGenerator):
         return self.__name.value
 
     def name_mangling(self, function_name, mangled_name):
-        if contains(mangled_name, self.__name):
-            self.__name = mangled_name[self.__name]
+        self.__name.name_mangling(function_name, mangled_name)
 
     def code(self, code_builder, program_state):
         self.__code_get(code_builder, program_state, program_state.get_variable(self.value).value_type(program_state))

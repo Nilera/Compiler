@@ -1,0 +1,9 @@
+int fun(int[] array) {
+    return array[0];
+}
+
+void main() {
+    int[] array = new int[1];
+    array[0] = 5;
+    write(fun(array));
+}

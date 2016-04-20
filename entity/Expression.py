@@ -74,9 +74,10 @@ class AssignmentOperator(Operator):
             raise ValueError(
                 "%s expression has incorrect type <%s> = <%s>" % (self.unmangling(), var_type, expr_type))
 
+        prev_array_name = program_state.array_name
         program_state.set_array_name(var_name)
         self.__expression.code(code_builder, program_state)
-        program_state.set_array_name("")
+        program_state.set_array_name(prev_array_name)
 
         if isinstance(self.__target, ArrayGetter):
             self.__target.code_setter(code_builder, program_state)
