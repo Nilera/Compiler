@@ -169,10 +169,30 @@ Identifier
 literal
     : IntegerLiteral
     | BooleanLiteral
+    | StringLiteral
     ;
 
 IntegerLiteral : Number ;
 BooleanLiteral : 'true' | 'false' ;
+StringLiteral
+    :   '"' StringCharacters? '"'
+    ;
+
+fragment
+StringCharacters
+    :   StringCharacter+
+    ;
+
+fragment
+StringCharacter
+    :   ~["\\]
+    |   EscapeSequence
+    ;
+
+fragment
+EscapeSequence
+    :   '\\' [btnfr"'\\]
+    ;
 
 fragment Number : '0' | NonZeroDigit Digit* ;
 fragment Digit : '0' | NonZeroDigit ;
