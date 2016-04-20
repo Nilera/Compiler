@@ -124,7 +124,6 @@ class ReturnStatement(NameMangling, CodeGenerator):
         self.__expression.name_mangling(function_name, mangled_name)
 
     def code(self, code_builder, program_state):
-        # TODO: array
         self.__expression.code(code_builder, program_state)
         code_builder.add_instruction("push", "eax")
 

@@ -1,4 +1,4 @@
-from entity.Array import Array, ArrayGetter
+from entity.Array import ArrayGetter
 from entity.CodeGenerator import CodeGenerator
 from entity.NameMangling import NameMangling
 from entity.Type import Type
@@ -54,43 +54,43 @@ class Operator(NameMangling, CodeGenerator):
 
 
 class AssignmentOperator(Operator):
-    def __init__(self, name, expression):
+    def __init__(self, target, expression):
         super(AssignmentOperator, self).__init__()
-        self.__name = name
+        self.__target = target
         self.__expression = expression
 
     def name_mangling(self, function_name, mangled_name):
-        self.__name.name_mangling(function_name, mangled_name)
+        self.__target.name_mangling(function_name, mangled_name)
         self.__expression.name_mangling(function_name, mangled_name)
 
     def code(self, code_builder, program_state):
-        if not program_state.contains_variable(self.__name.value):
-            raise SyntaxError("no variable \"%s\" in scope" % self.__name.unmangling())
-        if isinstance(self.__name, ArrayGetter):
-            var_type = self.__name.value_type(program_state)
-        else:
-            var_type = program_state.get_variable(self.__name.value).value_type()
+        var_name = self.__target.value
+        if not program_state.contains_variable(var_name):
+            raise SyntaxError("no variable \"%s\" in scope" % self.__target.unmangling())
+
+        var_type = self.__target.value_type(program_state)
         expr_type = self.__expression.value_type(program_state)
         if var_type != expr_type:
             raise ValueError(
                 "%s expression has incorrect type <%s> = <%s>" % (self.unmangling(), var_type, expr_type))
+
+        program_state.set_array_name(var_name)
         self.__expression.code(code_builder, program_state)
-        # TODO: array set
-        if isinstance(var_type, Array):
-            raise NotImplementedError
-        elif isinstance(self.__name, ArrayGetter):
-            self.__name.code_setter(code_builder, program_state)
+        program_state.set_array_name("")
+
+        if isinstance(self.__target, ArrayGetter):
+            self.__target.code_setter(code_builder, program_state)
         else:
-            code_builder.add_instruction("mov", "[%s]" % self.__name.value, "eax")
+            code_builder.add_instruction("mov", "[%s]" % var_name, "eax")
 
     def value_type(self, program_state):
         raise NotImplementedError
 
     def unmangling(self):
-        return "%s = %s" % (self.__name.unmangling(), self.__expression.unmangling())
+        return "%s = %s" % (self.__target.unmangling(), self.__expression.unmangling())
 
     def __str__(self):
-        return "%s = %s" % (self.__name, self.__expression)
+        return "%s = %s" % (self.__target, self.__expression)
 
 
 class UnaryOperator(Operator):
@@ -156,14 +156,15 @@ class BinaryOperator(Operator):
         if left_type != right_type:
             raise ValueError("%s: operator %s cannot be applied for <%s>, <%s>" % (
                 self.unmangling(), self._get_sign(), left_type, right_type))
+
         self._left.code(code_builder, program_state)
         code_builder.add_instruction("push", "eax")
         self._right.code(code_builder, program_state)
         code_builder.add_instruction("mov", "ebx", "eax")
         code_builder.add_instruction("pop", "eax")
-        self.windows_code_operator(code_builder, program_state)
+        self.code_operator(code_builder, program_state)
 
-    def windows_code_operator(self, code_builder, program_state):
+    def code_operator(self, code_builder, program_state):
         raise NotImplementedError
 
     def value_type(self, program_state):
@@ -183,12 +184,7 @@ class BooleanBinaryOperator(BinaryOperator):
     def __init__(self, left, right):
         super(BooleanBinaryOperator, self).__init__(left, right)
 
-    def windows_code_operator(self, code_builder, program_state):
-        left_type = self._left.value_type(program_state)
-        right_type = self._right.value_type(program_state)
-        if left_type != right_type:
-            raise ValueError("%s: operator %s cannot be applied for <%s>, <%s>" % (
-                self.unmangling(), self._get_sign(), left_type, right_type))
+    def code_operator(self, code_builder, program_state):
         label = "%s_bool_op_%d_skip" % (program_state.function_name, program_state.get_if_number())
         code_builder.add_instruction("cmp", "eax", "ebx")
         code_builder.add_instruction("mov", "eax", "1")
@@ -210,7 +206,7 @@ class Plus(BinaryOperator):
     def __init__(self, left, right):
         super(Plus, self).__init__(left, right)
 
-    def windows_code_operator(self, code_builder, program_state):
+    def code_operator(self, code_builder, program_state):
         code_builder.add_instruction("add", "eax", "ebx")
 
     def _get_sign(self):
@@ -221,7 +217,7 @@ class Minus(BinaryOperator):
     def __init__(self, left, right):
         super(Minus, self).__init__(left, right)
 
-    def windows_code_operator(self, code_builder, program_state):
+    def code_operator(self, code_builder, program_state):
         code_builder.add_instruction("sub", "eax", "ebx")
 
     def _get_sign(self):
@@ -232,7 +228,7 @@ class Multiply(BinaryOperator):
     def __init__(self, left, right):
         super(Multiply, self).__init__(left, right)
 
-    def windows_code_operator(self, code_builder, program_state):
+    def code_operator(self, code_builder, program_state):
         code_builder.add_instruction("cdq")
         code_builder.add_instruction("imul", "ebx")
 
@@ -244,7 +240,7 @@ class Divide(BinaryOperator):
     def __init__(self, left, right):
         super(Divide, self).__init__(left, right)
 
-    def windows_code_operator(self, code_builder, program_state):
+    def code_operator(self, code_builder, program_state):
         code_builder.add_instruction("cdq")
         code_builder.add_instruction("idiv", "ebx")
 
@@ -256,7 +252,7 @@ class Modulo(BinaryOperator):
     def __init__(self, left, right):
         super(Modulo, self).__init__(left, right)
 
-    def windows_code_operator(self, code_builder, program_state):
+    def code_operator(self, code_builder, program_state):
         code_builder.add_instruction("cdq")
         code_builder.add_instruction("idiv", "ebx")
         code_builder.add_instruction("mov", "eax", "edx")
@@ -335,11 +331,11 @@ class Or(BooleanBinaryOperator):
     def __init__(self, left, right):
         super(Or, self).__init__(left, right)
 
-    def code(self, code_builder, program_state):
+    def code_operator(self, code_builder, program_state):
         code_builder.add_instruction("and", "eax", "ebx")
 
     def _get_instruction(self):
-        return "or"
+        raise NotImplementedError
 
     def _get_sign(self):
         return "||"
@@ -349,11 +345,11 @@ class And(BooleanBinaryOperator):
     def __init__(self, left, right):
         super(And, self).__init__(left, right)
 
-    def code(self, code_builder, program_state):
+    def code_operator(self, code_builder, program_state):
         code_builder.add_instruction("or", "eax", "ebx")
 
     def _get_instruction(self):
-        return "and"
+        raise NotImplementedError
 
     def _get_sign(self):
         return "&&"

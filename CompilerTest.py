@@ -50,68 +50,72 @@ class CompilerTest(unittest.TestCase):
         n = 3
         k = 4
         result = abstract_test_with_out("tests/power", "%d\n%d\n" % (k, n))
-        self.assertEqual(result, str(n ** k))
+        self.assertEqual(str(n ** k), result)
 
     def test_a_plus_b(self):
         a = 2
         b = -53
         result = abstract_test_with_out("tests/a_plus_b", "%d\n%d\n" % (a, b))
-        self.assertEqual(result, str(a + b))
+        self.assertEqual(str(a + b), result)
 
     def test_global_variable(self):
         result = abstract_test_with_out("tests/global_variable")
-        self.assertEqual(result, str(0))
+        self.assertEqual(str(0), result)
 
     def test_2_plus_2_is_4(self):
         result = abstract_test_with_out("tests/2_plus_2_is_4")
-        self.assertEqual(result, str(1))
+        self.assertEqual(str(1), result)
 
     def test_no_main(self):
         result = abstract_test_correct_program("tests/no_main")
-        self.assertEqual(result, True)
+        self.assertEqual(True, result)
 
     def test_incorrect_main(self):
         result = abstract_test_incorrect_program("tests/incorrect_main")
-        self.assertEqual(result, True)
+        self.assertEqual(True, result)
 
     def test_missing_return_statement(self):
         result = abstract_test_incorrect_program("tests/missing_return_statement")
-        self.assertEqual(result, True)
+        self.assertEqual(True, result)
 
     def test_function_incorrect_number_of_arguments(self):
         result = abstract_test_incorrect_program("tests/function_incorrect_number_of_arguments")
-        self.assertEqual(result, True)
+        self.assertEqual(True, result)
 
     def test_function_incorrect_arguments(self):
         result = abstract_test_incorrect_program("tests/function_incorrect_arguments")
-        self.assertEqual(result, True)
+        self.assertEqual(True, result)
 
     def test_expression_incorrect_type(self):
         result = abstract_test_incorrect_program("tests/expression_incorrect_type1")
         result &= abstract_test_incorrect_program("tests/expression_incorrect_type2")
         result &= abstract_test_incorrect_program("tests/expression_incorrect_type3")
         result &= abstract_test_incorrect_program("tests/expression_incorrect_type4")
-        self.assertEqual(result, True)
+        self.assertEqual(True, result)
 
     def test_while_incorrect_condition(self):
         result = abstract_test_incorrect_program("tests/while_incorrect_condition")
-        self.assertEqual(result, True)
+        self.assertEqual(True, result)
 
     def test_if_incorrect_condition(self):
         result = abstract_test_incorrect_program("tests/if_incorrect_condition")
-        self.assertEqual(result, True)
+        self.assertEqual(True, result)
 
     def test_deadcode(self):
         result = abstract_test_incorrect_program("tests/deadcode")
-        self.assertEqual(result, True)
+        self.assertEqual(True, result)
 
     def test_function_not_in_scope(self):
         result = abstract_test_incorrect_program("tests/function_not_in_scope")
-        self.assertEqual(result, True)
+        self.assertEqual(True, result)
 
     def test_variable_not_in_scope(self):
         result = abstract_test_incorrect_program("tests/variable_not_in_scope")
-        self.assertEqual(result, True)
+        self.assertEqual(True, result)
+
+    def test_simple_array(self):
+        result = abstract_test_with_out("tests/simple_array")
+        self.assertEqual("1234", result)
 
 
 if __name__ == '__main__':

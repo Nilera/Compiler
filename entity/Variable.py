@@ -1,5 +1,4 @@
-from Platform import Platform
-from entity.Array import Array, ArrayCreator, ArrayGetter
+from entity.Array import Array
 from entity.CodeGenerator import CodeGenerator
 from entity.NameMangling import NameMangling
 from entity.Scalar import IntScalar, BoolScalar
@@ -40,14 +39,7 @@ class Variable(NameMangling, CodeGenerator):
             if isinstance(self.__value_type, Array):
                 code_builder.add_data(self.name, "dd", "0")
                 program_state.set_array_name(self.name)
-                if isinstance(self.expression, ArrayCreator):
-                    if code_builder.platform == Platform.win32:
-                        code_builder.add_extern("__imp__malloc")
-                    else:
-                        code_builder.add_extern("malloc")
-                    self.expression.code(code_builder, program_state)
-                elif isinstance(self.expression, ArrayGetter):
-                    self.expression.code_generator(code_builder, program_state)
+                self.expression.code(code_builder, program_state)
                 program_state.set_array_name("")
                 code_builder.add_instruction("mov", "[%s]" % self.name, "eax")
             elif isinstance(self.expression, (IntScalar, BoolScalar)):

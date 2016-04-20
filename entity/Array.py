@@ -1,5 +1,7 @@
 import sys
+from operator import contains
 
+from Platform import Platform
 from entity.CodeGenerator import CodeGenerator
 from entity.NameMangling import NameMangling
 from entity.Type import Type
@@ -11,7 +13,7 @@ class Array(object):
         self.__dimension = dimension
 
     def default_value(self):
-        raise NotImplementedError
+        return 0
 
     def format_string(self):
         if self.__value_type == Type.char and self.__dimension == 1:
@@ -54,6 +56,10 @@ class ArrayCreator(NameMangling, CodeGenerator):
         pass
 
     def code(self, code_builder, program_state):
+        if code_builder.platform == Platform.win32:
+            code_builder.add_extern("__imp__malloc")
+        else:
+            code_builder.add_extern("malloc")
         code_builder.add_instruction("push", "1")
         for index in range(len(self)):
             dimension = self[index]
@@ -69,8 +75,8 @@ class ArrayCreator(NameMangling, CodeGenerator):
             code_builder.add_instruction("call", "[__imp__malloc]")
         else:
             code_builder.add_instruction("call", "malloc")
-        code_builder.add_instruction("test", "eax", "eax")
-        code_builder.add_instruction("jz", "_fail_malloc")
+        # code_builder.add_instruction("test", "eax", "eax")
+        # code_builder.add_instruction("jz", "_fail_malloc")
         # TODO: add malloc fail
         code_builder.add_instruction("add", "esp", "4")
 
@@ -113,9 +119,11 @@ class ArrayGetter(NameMangling, CodeGenerator):
             code_builder.add_instruction("mov", "eax", "[eax]")
 
     def code_setter(self, code_builder, program_state):
+        """
+        Sets value from eax to array. If settable value is array then it will be copy to new memory.
+        """
         array = self.value_type(program_state)
         self.__code_get(code_builder, array)
-        # value in eax
         code_builder.add_instruction("add", "ebx", "[%s]" % self.__name)
         if isinstance(array, Array):
             # TODO: adok
@@ -124,7 +132,14 @@ class ArrayGetter(NameMangling, CodeGenerator):
             code_builder.add_instruction("mov", "[ebx]", "eax")
 
     def __code_get(self, code_builder, array):
-        array_length = 1 if isinstance(array, Type) else len(array)
+        """
+        Calculates index offset to get data from array.
+
+        :type array: Type, Array
+        :return: ebx offset
+        """
+        array_length = 1 if isinstance(array, Type) else array.dimension
+        type_size = sys.getsizeof(array)
         code_builder.add_instruction("push", "eax")
         code_builder.add_instruction("push", "0")
         for i in range(len(self)):
@@ -133,13 +148,12 @@ class ArrayGetter(NameMangling, CodeGenerator):
                 code_builder.add_instruction("mov", "ebx", "[%s_%d]" % (self.__name, j))
                 code_builder.add_instruction("cdq")
                 code_builder.add_instruction("imul", "ebx")
-            # TODO: mov sizeof
-            code_builder.add_instruction("mov", "ebx", "4")
-            code_builder.add_instruction("cdq")
-            code_builder.add_instruction("imul", "ebx")
             code_builder.add_instruction("pop", "ebx")
             code_builder.add_instruction("add", "eax", "ebx")
             code_builder.add_instruction("push", "eax")
+        code_builder.add_instruction("mov", "ebx", str(type_size))
+        code_builder.add_instruction("cdq")
+        code_builder.add_instruction("imul", "ebx")
         code_builder.add_instruction("pop", "ebx")
         code_builder.add_instruction("pop", "eax")
 
