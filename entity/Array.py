@@ -1,4 +1,3 @@
-import sys
 from operator import contains
 
 from Platform import Platform
@@ -19,8 +18,8 @@ class Array(object):
         if self.__value_type == Type.char and self.__dimension == 1:
             return "string_format", "db", "\"%s\""
 
-    def __sizeof__(self):
-        return sys.getsizeof(self.__value_type)
+    def sizeof(self):
+        return self.__value_type.sizeof()
 
     def size_type(self):
         return self.__value_type.size_type()
@@ -111,50 +110,48 @@ class ArrayGetter(NameMangling, CodeGenerator):
             self.__name = mangled_name[self.__name]
 
     def code(self, code_builder, program_state):
-        return_type = self.value_type(program_state)
-        self.__code_get(code_builder, return_type)
+        self.__code_get(code_builder, program_state, program_state.get_variable(self.value).value_type(program_state))
         code_builder.add_instruction("mov", "eax", "[%s]" % self.__name)
         code_builder.add_instruction("add", "eax", "ebx")
-        if not isinstance(return_type, Array):
+        if not isinstance(self.value_type(program_state), Array):
             code_builder.add_instruction("mov", "eax", "[eax]")
 
     def code_setter(self, code_builder, program_state):
         """
         Sets value from eax to array. If settable value is array then it will be copy to new memory.
         """
-        array = self.value_type(program_state)
-        self.__code_get(code_builder, array)
+        self.__code_get(code_builder, program_state, program_state.get_variable(self.value).value_type(program_state))
         code_builder.add_instruction("add", "ebx", "[%s]" % self.__name)
-        if isinstance(array, Array):
+        if isinstance(self.value_type(program_state), Array):
             # TODO: adok
             raise NotImplementedError
         else:
             code_builder.add_instruction("mov", "[ebx]", "eax")
 
-    def __code_get(self, code_builder, array):
+    def __code_get(self, code_builder, program_state, array):
         """
         Calculates index offset to get data from array.
 
-        :type array: Type, Array
+        :type array: Array
         :return: ebx offset
         """
-        array_length = 1 if isinstance(array, Type) else array.dimension
-        type_size = sys.getsizeof(array)
+        type_size = array.sizeof()
         code_builder.add_instruction("push", "eax")
         code_builder.add_instruction("push", "0")
         for i in range(len(self)):
-            code_builder.add_instruction("mov", "eax", str(self[i]))
-            for j in range(i + 1, array_length):
+            self[i].code(code_builder, program_state)
+            for j in range(i + 1, array.dimension):
                 code_builder.add_instruction("mov", "ebx", "[%s_%d]" % (self.__name, j))
                 code_builder.add_instruction("cdq")
                 code_builder.add_instruction("imul", "ebx")
             code_builder.add_instruction("pop", "ebx")
             code_builder.add_instruction("add", "eax", "ebx")
             code_builder.add_instruction("push", "eax")
+        code_builder.add_instruction("pop", "eax")
         code_builder.add_instruction("mov", "ebx", str(type_size))
         code_builder.add_instruction("cdq")
         code_builder.add_instruction("imul", "ebx")
-        code_builder.add_instruction("pop", "ebx")
+        code_builder.add_instruction("mov", "ebx", "eax")
         code_builder.add_instruction("pop", "eax")
 
     def value_type(self, program_state):

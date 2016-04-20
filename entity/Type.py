@@ -16,7 +16,7 @@ class Type(Enum):
         elif self == Type.char:
             return "char_format", "db", "\"%c\""
 
-    def __sizeof__(self):
+    def sizeof(self):
         if self == Type.int or self == Type.boolean:
             return 4
         elif self == Type.char:
