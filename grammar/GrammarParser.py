@@ -15,7 +15,7 @@ from entity.Statement import *
 
 def serializedATN():
     with StringIO() as buf:
-        buf.write("\3\u0430\ud6d1\u8206\uad2d\u4417\uaef1\u8d80\uaadd\3&")
+        buf.write("\3\u0430\ud6d1\u8206\uad2d\u4417\uaef1\u8d80\uaadd\3(")
         buf.write("\u013a\4\2\t\2\4\3\t\3\4\4\t\4\4\5\t\5\4\6\t\6\4\7\t\7")
         buf.write("\4\b\t\b\4\t\t\t\4\n\t\n\4\13\t\13\4\f\t\f\4\r\t\r\4\16")
         buf.write("\t\16\4\17\t\17\4\20\t\20\4\21\t\21\4\22\t\22\4\23\t\23")
@@ -47,7 +47,7 @@ def serializedATN():
         buf.write("\25\3\25\3\25\3\25\3\25\3\25\3\25\3\25\5\25\u0136\n\25")
         buf.write("\3\26\3\26\3\26\2\3\"\27\2\4\6\b\n\f\16\20\22\24\26\30")
         buf.write("\32\34\36 \"$&(*\2\7\3\2\25\26\3\2\27\31\3\2\32\35\3\2")
-        buf.write("\36\37\3\2#$\u0146\2\61\3\2\2\2\4<\3\2\2\2\6J\3\2\2\2")
+        buf.write("\36\37\3\2#&\u0146\2\61\3\2\2\2\4<\3\2\2\2\6J\3\2\2\2")
         buf.write("\bL\3\2\2\2\nT\3\2\2\2\f_\3\2\2\2\16c\3\2\2\2\20t\3\2")
         buf.write("\2\2\22\u0092\3\2\2\2\24\u0094\3\2\2\2\26\u009f\3\2\2")
         buf.write("\2\30\u00a4\3\2\2\2\32\u00a7\3\2\2\2\34\u00ac\3\2\2\2")
@@ -180,7 +180,7 @@ class GrammarParser ( Parser ):
                       "<INVALID>", "<INVALID>", "<INVALID>", "<INVALID>", 
                       "<INVALID>", "<INVALID>", "<INVALID>", "<INVALID>", 
                       "Identifier", "IntegerLiteral", "BooleanLiteral", 
-                      "WS", "COMMENT" ]
+                      "CharacterLiteral", "StringLiteral", "WS", "COMMENT" ]
 
     RULE_program = 0
     RULE_programElement = 1
@@ -246,8 +246,10 @@ class GrammarParser ( Parser ):
     Identifier=32
     IntegerLiteral=33
     BooleanLiteral=34
-    WS=35
-    COMMENT=36
+    CharacterLiteral=35
+    StringLiteral=36
+    WS=37
+    COMMENT=38
 
     def __init__(self, input:TokenStream):
         super().__init__(input)
@@ -674,7 +676,7 @@ class GrammarParser ( Parser ):
             self.state = 103
             self._errHandler.sync(self)
             _la = self._input.LA(1)
-            while (((_la) & ~0x3f) == 0 and ((1 << _la) & ((1 << GrammarParser.T__1) | (1 << GrammarParser.T__6) | (1 << GrammarParser.T__8) | (1 << GrammarParser.T__9) | (1 << GrammarParser.T__13) | (1 << GrammarParser.T__14) | (1 << GrammarParser.T__15) | (1 << GrammarParser.T__17) | (1 << GrammarParser.T__18) | (1 << GrammarParser.T__19) | (1 << GrammarParser.Identifier) | (1 << GrammarParser.IntegerLiteral) | (1 << GrammarParser.BooleanLiteral))) != 0):
+            while (((_la) & ~0x3f) == 0 and ((1 << _la) & ((1 << GrammarParser.T__1) | (1 << GrammarParser.T__6) | (1 << GrammarParser.T__8) | (1 << GrammarParser.T__9) | (1 << GrammarParser.T__13) | (1 << GrammarParser.T__14) | (1 << GrammarParser.T__15) | (1 << GrammarParser.T__17) | (1 << GrammarParser.T__18) | (1 << GrammarParser.T__19) | (1 << GrammarParser.Identifier) | (1 << GrammarParser.IntegerLiteral) | (1 << GrammarParser.BooleanLiteral) | (1 << GrammarParser.CharacterLiteral) | (1 << GrammarParser.StringLiteral))) != 0):
                 self.state = 98
                 localctx._blockStatement = self.blockStatement()
                 localctx.statements.append(localctx._blockStatement.state)
@@ -736,7 +738,7 @@ class GrammarParser ( Parser ):
                 localctx._variableDeclaration = self.variableDeclaration()
                 localctx.state = localctx._variableDeclaration.variable
 
-            elif token in [GrammarParser.T__1, GrammarParser.T__6, GrammarParser.T__8, GrammarParser.T__9, GrammarParser.T__17, GrammarParser.T__18, GrammarParser.T__19, GrammarParser.Identifier, GrammarParser.IntegerLiteral, GrammarParser.BooleanLiteral]:
+            elif token in [GrammarParser.T__1, GrammarParser.T__6, GrammarParser.T__8, GrammarParser.T__9, GrammarParser.T__17, GrammarParser.T__18, GrammarParser.T__19, GrammarParser.Identifier, GrammarParser.IntegerLiteral, GrammarParser.BooleanLiteral, GrammarParser.CharacterLiteral, GrammarParser.StringLiteral]:
                 self.enterOuterAlt(localctx, 2)
                 self.state = 111
                 localctx._statement = self.statement()
@@ -843,7 +845,7 @@ class GrammarParser ( Parser ):
                 self.match(GrammarParser.T__9)
                 self.state = 136
                 _la = self._input.LA(1)
-                if (((_la) & ~0x3f) == 0 and ((1 << _la) & ((1 << GrammarParser.T__1) | (1 << GrammarParser.T__17) | (1 << GrammarParser.T__18) | (1 << GrammarParser.T__19) | (1 << GrammarParser.Identifier) | (1 << GrammarParser.IntegerLiteral) | (1 << GrammarParser.BooleanLiteral))) != 0):
+                if (((_la) & ~0x3f) == 0 and ((1 << _la) & ((1 << GrammarParser.T__1) | (1 << GrammarParser.T__17) | (1 << GrammarParser.T__18) | (1 << GrammarParser.T__19) | (1 << GrammarParser.Identifier) | (1 << GrammarParser.IntegerLiteral) | (1 << GrammarParser.BooleanLiteral) | (1 << GrammarParser.CharacterLiteral) | (1 << GrammarParser.StringLiteral))) != 0):
                     self.state = 133
                     localctx._expression = self.expression(0)
                     tmp_var = localctx._expression.expr
@@ -853,7 +855,7 @@ class GrammarParser ( Parser ):
                 self.match(GrammarParser.T__10)
                 localctx.state = ReturnStatement(tmp_var)
 
-            elif token in [GrammarParser.T__1, GrammarParser.T__17, GrammarParser.T__18, GrammarParser.T__19, GrammarParser.Identifier, GrammarParser.IntegerLiteral, GrammarParser.BooleanLiteral]:
+            elif token in [GrammarParser.T__1, GrammarParser.T__17, GrammarParser.T__18, GrammarParser.T__19, GrammarParser.Identifier, GrammarParser.IntegerLiteral, GrammarParser.BooleanLiteral, GrammarParser.CharacterLiteral, GrammarParser.StringLiteral]:
                 self.enterOuterAlt(localctx, 4)
                 self.state = 140
                 localctx._callFunction = self.callFunction()
@@ -914,7 +916,7 @@ class GrammarParser ( Parser ):
             self.state = 152
             self._errHandler.sync(self)
             _la = self._input.LA(1)
-            while (((_la) & ~0x3f) == 0 and ((1 << _la) & ((1 << GrammarParser.T__1) | (1 << GrammarParser.T__6) | (1 << GrammarParser.T__8) | (1 << GrammarParser.T__9) | (1 << GrammarParser.T__13) | (1 << GrammarParser.T__14) | (1 << GrammarParser.T__15) | (1 << GrammarParser.T__17) | (1 << GrammarParser.T__18) | (1 << GrammarParser.T__19) | (1 << GrammarParser.Identifier) | (1 << GrammarParser.IntegerLiteral) | (1 << GrammarParser.BooleanLiteral))) != 0):
+            while (((_la) & ~0x3f) == 0 and ((1 << _la) & ((1 << GrammarParser.T__1) | (1 << GrammarParser.T__6) | (1 << GrammarParser.T__8) | (1 << GrammarParser.T__9) | (1 << GrammarParser.T__13) | (1 << GrammarParser.T__14) | (1 << GrammarParser.T__15) | (1 << GrammarParser.T__17) | (1 << GrammarParser.T__18) | (1 << GrammarParser.T__19) | (1 << GrammarParser.Identifier) | (1 << GrammarParser.IntegerLiteral) | (1 << GrammarParser.BooleanLiteral) | (1 << GrammarParser.CharacterLiteral) | (1 << GrammarParser.StringLiteral))) != 0):
                 self.state = 147
                 localctx._blockStatement = self.blockStatement()
                 localctx.statements.append(localctx._blockStatement.state)
@@ -1321,7 +1323,7 @@ class GrammarParser ( Parser ):
                 localctx.e = self.expression(8)
                 localctx.expr = get_expression((None if localctx.sign is None else localctx.sign.text), None, localctx.e.expr)
 
-            elif token in [GrammarParser.T__1, GrammarParser.Identifier, GrammarParser.IntegerLiteral, GrammarParser.BooleanLiteral]:
+            elif token in [GrammarParser.T__1, GrammarParser.Identifier, GrammarParser.IntegerLiteral, GrammarParser.BooleanLiteral, GrammarParser.CharacterLiteral, GrammarParser.StringLiteral]:
                 self.state = 204
                 localctx._primary = self.primary()
                 localctx.expr = localctx._primary.expr
@@ -1514,7 +1516,7 @@ class GrammarParser ( Parser ):
                         self.match(GrammarParser.T__1)
                         self.state = 265
                         _la = self._input.LA(1)
-                        if (((_la) & ~0x3f) == 0 and ((1 << _la) & ((1 << GrammarParser.T__1) | (1 << GrammarParser.T__17) | (1 << GrammarParser.T__18) | (1 << GrammarParser.T__19) | (1 << GrammarParser.Identifier) | (1 << GrammarParser.IntegerLiteral) | (1 << GrammarParser.BooleanLiteral))) != 0):
+                        if (((_la) & ~0x3f) == 0 and ((1 << _la) & ((1 << GrammarParser.T__1) | (1 << GrammarParser.T__17) | (1 << GrammarParser.T__18) | (1 << GrammarParser.T__19) | (1 << GrammarParser.Identifier) | (1 << GrammarParser.IntegerLiteral) | (1 << GrammarParser.BooleanLiteral) | (1 << GrammarParser.CharacterLiteral) | (1 << GrammarParser.StringLiteral))) != 0):
                             self.state = 262
                             localctx._expressionList = self.expressionList()
                             tmp_var = localctx._expressionList.args
@@ -1722,7 +1724,7 @@ class GrammarParser ( Parser ):
                 self.match(GrammarParser.T__2)
                 localctx.expr = localctx._expression.expr
 
-            elif token in [GrammarParser.IntegerLiteral, GrammarParser.BooleanLiteral]:
+            elif token in [GrammarParser.IntegerLiteral, GrammarParser.BooleanLiteral, GrammarParser.CharacterLiteral, GrammarParser.StringLiteral]:
                 self.enterOuterAlt(localctx, 2)
                 self.state = 302
                 localctx._literal = self.literal()
@@ -1757,6 +1759,12 @@ class GrammarParser ( Parser ):
         def BooleanLiteral(self):
             return self.getToken(GrammarParser.BooleanLiteral, 0)
 
+        def CharacterLiteral(self):
+            return self.getToken(GrammarParser.CharacterLiteral, 0)
+
+        def StringLiteral(self):
+            return self.getToken(GrammarParser.StringLiteral, 0)
+
         def getRuleIndex(self):
             return GrammarParser.RULE_literal
 
@@ -1780,7 +1788,7 @@ class GrammarParser ( Parser ):
             self.enterOuterAlt(localctx, 1)
             self.state = 309
             _la = self._input.LA(1)
-            if not(_la==GrammarParser.IntegerLiteral or _la==GrammarParser.BooleanLiteral):
+            if not((((_la) & ~0x3f) == 0 and ((1 << _la) & ((1 << GrammarParser.IntegerLiteral) | (1 << GrammarParser.BooleanLiteral) | (1 << GrammarParser.CharacterLiteral) | (1 << GrammarParser.StringLiteral))) != 0)):
                 self._errHandler.recoverInline(self)
             else:
                 self.consume()

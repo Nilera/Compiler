@@ -176,11 +176,23 @@ Identifier
 literal
     : IntegerLiteral
     | BooleanLiteral
+    | CharacterLiteral
     | StringLiteral
     ;
 
 IntegerLiteral : Number ;
 BooleanLiteral : 'true' | 'false' ;
+CharacterLiteral
+    :   '\'' SingleCharacter '\''
+    |   '\'' EscapeSequence '\''
+    ;
+
+fragment
+SingleCharacter
+    :   ~['\\]
+    ;
+
+
 StringLiteral
     :   '"' StringCharacters? '"'
     ;

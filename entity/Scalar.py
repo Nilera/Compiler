@@ -1,5 +1,6 @@
 from operator import contains
 
+from entity.Array import Array
 from entity.CodeGenerator import CodeGenerator
 from entity.NameMangling import NameMangling
 from entity.Returnable import Returnable
@@ -7,10 +8,17 @@ from entity.Type import Type
 
 
 def get_scalar(value):
+    """
+    :type value: str
+    """
     if value.isdigit():
         return IntScalar(value)
     elif value == "true" or value == "false":
         return BoolScalar(value)
+    elif value.startswith("\'"):
+        return CharScalar(value)
+    elif value.startswith("\""):
+        return StringScalar(value)
     else:
         return VariableScalar(value)
 
@@ -82,3 +90,31 @@ class BoolScalar(Scalar):
     @property
     def value(self):
         return 0 if self._value == "false" else 1
+
+
+class CharScalar(Scalar):
+    def __init__(self, value):
+        if not value.startswith("\'"):
+            raise ValueError("%s is not char value" % value[1])
+        super(CharScalar, self).__init__(value[1])
+
+    def value_type(self, program_state):
+        return Type.char
+
+    @property
+    def value(self):
+        return ord(self._value)
+
+
+class StringScalar(Scalar):
+    def __init__(self, value):
+        if not value.startswith("\""):
+            raise ValueError("%s is not char value" % value[1:len(value) - 1])
+        super(StringScalar, self).__init__(value[1:len(value) - 1])
+
+    def value_type(self, program_state):
+        return Array(Type.char, 1)
+
+    @property
+    def value(self):
+        return self._value

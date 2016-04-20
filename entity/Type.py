@@ -20,13 +20,13 @@ class Type(Enum):
         if self == Type.int or self == Type.boolean:
             return 4
         elif self == Type.char:
-            return 2
+            return 4  # ohh...
 
     def size_type(self):
         if self == Type.int or self == Type.boolean:
             return "dd"
         elif self == Type.char:
-            return "dw"
+            return "dd"  # this is quite strange too
 
     def __str__(self):
         return self.name
