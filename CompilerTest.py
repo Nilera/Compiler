@@ -66,6 +66,10 @@ class CompilerTest(unittest.TestCase):
         result = abstract_test_with_out("tests/2_plus_2_is_4")
         self.assertEqual(str(1), result)
 
+    def test_global_2_plus_2_is_4(self):
+        result = abstract_test_with_out("tests/global_2_plus_2_is_4")
+        self.assertEqual(str(1), result)
+
     def test_no_main(self):
         result = abstract_test_correct_program("tests/no_main")
         self.assertEqual(True, result)

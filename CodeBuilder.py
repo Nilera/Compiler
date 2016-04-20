@@ -59,13 +59,15 @@ class CodeBuilder(object):
             main_function.name_mangling(None, {})
             main_function.code(self, self.__program_state)
 
+        main_function_str = self.__main_function_instruction[0] + "\n" + "\n".join(
+            x for x in self.__global_variables_initialization) + "\n" + "\n".join(
+            self.__main_function_instruction[i] for i in range(1, len(
+                self.__main_function_instruction)))
+
         externs = "\n".join(x for x in self.__externs)
         text = "section .text\n" + \
                "global %s\n\n" % global_main + \
-               "\n".join(x for x in self.__global_variables_initialization) + \
-               "\n" + \
-               "\n".join(x for x in self.__main_function_instruction) + \
-               "\n" + \
+               main_function_str + "\n" + \
                "\n".join(x for x in self.__text_section_instruction)
         data = "section .data\n" + \
                "\n".join(x for x in self.__data_section_instruction) + \

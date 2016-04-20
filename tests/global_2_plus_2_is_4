@@ -1,0 +1,11 @@
+int a = 2;
+int b = 2;
+int c = 4;
+
+boolean compare(int left, int right) {
+    return left == right;
+}
+
+void main() {
+    write(compare(a + b, c));
+}
