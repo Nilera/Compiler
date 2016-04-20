@@ -126,7 +126,7 @@ class ReturnStatement(NameMangling, CodeGenerator):
 
     def code(self, code_builder, program_state):
         if isinstance(self.__expression.value_type(program_state), Array):
-            pass
+            raise SyntaxError("function couldn't return array")
         self.__expression.code(code_builder, program_state)
         code_builder.add_instruction("push", "eax")
 

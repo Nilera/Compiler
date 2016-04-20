@@ -58,4 +58,3 @@ class ProgramState(object):
     def get_io_function_number(self):
         self.__io_function += 1
         return self.__io_function
-

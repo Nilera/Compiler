@@ -1,4 +1,4 @@
-from entity.Array import ArrayGetter
+from entity.Array import ArrayGetter, Array
 from entity.CodeGenerator import CodeGenerator
 from entity.NameMangling import NameMangling
 from entity.Type import Type
@@ -80,7 +80,10 @@ class AssignmentOperator(Operator):
         program_state.set_array_name(prev_array_name)
 
         if isinstance(self.__target, ArrayGetter):
-            self.__target.code_setter(code_builder, program_state)
+            if isinstance(self.__target.value_type(program_state), Array):
+                raise SyntaxError("%s operation is not supported" % self.unmangling())
+            else:
+                self.__target.code_setter(code_builder, program_state)
         else:
             code_builder.add_instruction("mov", "[%s]" % var_name, "eax")
 

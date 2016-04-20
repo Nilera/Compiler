@@ -19,11 +19,12 @@ class Variable(NameMangling, CodeGenerator):
         return self.__expression
 
     def name_mangling(self, function_name, mangled_name):
-        prev_name = self.__name
-        self.__name = "%s_%s" % (function_name, prev_name)
         if isinstance(self.__expression, NameMangling):
             self.__expression.name_mangling(function_name, mangled_name)
-        mangled_name[prev_name] = self.__name
+        if function_name is not None:
+            prev_name = self.__name
+            self.__name = "%s_%s" % (function_name, prev_name)
+            mangled_name[prev_name] = self.__name
 
     def code(self, code_builder, program_state):
         program_state.add_variable(self)

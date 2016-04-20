@@ -129,6 +129,10 @@ class CompilerTest(unittest.TestCase):
         result = abstract_test_with_out("tests/change_array_in_function")
         self.assertEqual("10", result)
 
+    def test_try_to_return_array(self):
+        result = abstract_test_incorrect_program("tests/try_to_return_array")
+        self.assertEqual(True, result)
+
 
 if __name__ == '__main__':
     unittest.main()

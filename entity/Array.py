@@ -122,7 +122,6 @@ class ArrayGetter(NameMangling, CodeGenerator):
         self.__code_get(code_builder, program_state, program_state.get_variable(self.value).value_type(program_state))
         code_builder.add_instruction("add", "ebx", "[%s]" % self.__name)
         if isinstance(self.value_type(program_state), Array):
-            # TODO: adok
             raise NotImplementedError
         else:
             code_builder.add_instruction("mov", "[ebx]", "eax")
@@ -156,12 +155,12 @@ class ArrayGetter(NameMangling, CodeGenerator):
     def value_type(self, program_state):
         arr_var = program_state.get_variable(self.value)
         arr_var_type = arr_var.value_type()
-        if arr_var_type.dimension > len(self.__dimensions_sizes):
+        if arr_var_type.dimension < len(self.__dimensions_sizes):
             raise SyntaxError("Array required but %s found: %s" % (str(arr_var_type), self.unmangling()))
         elif arr_var_type.dimension == len(self.__dimensions_sizes):
             return arr_var_type.value_type
         else:
-            return Array(arr_var_type, len(self.__dimensions_sizes) - arr_var.dimension)
+            return Array(arr_var_type.value_type, arr_var_type.dimension - len(self))
 
     def unmangling(self):
         return "%s%s" % (
