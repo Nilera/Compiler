@@ -1,4 +1,4 @@
-# Generated from /home/isamborskiy/Python/Compiler/grammar/Grammar.g4 by ANTLR 4.5.1
+# Generated from D:/Python/Compiler/grammar\Grammar.g4 by ANTLR 4.5.1
 # encoding: utf-8
 from antlr4 import *
 from io import StringIO
@@ -258,6 +258,13 @@ class GrammarParser ( Parser ):
 
 
         self.program_states = Program()
+
+    def append_to_array(self, array, element):
+        if array is None:
+            return [element]
+        else:
+            array.append(element)
+            return array
 
 
     class ProgramContext(ParserRuleContext):
@@ -1482,7 +1489,7 @@ class GrammarParser ( Parser ):
                                 self.match(GrammarParser.T__11)
                                 self.state = 250
                                 localctx.e2 = self.expression(0)
-                                tmp_var = [localctx.e2.expr] if tmp_var is None else tmp_var.append(localctx.e2.expr)
+                                tmp_var = self.append_to_array(tmp_var, localctx.e2.expr)
                                 self.state = 252
                                 self.match(GrammarParser.T__12)
 

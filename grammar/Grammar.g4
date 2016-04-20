@@ -13,6 +13,13 @@ from entity.Statement import *
 
 @parser::members {
     self.program_states = Program()
+
+def append_to_array(self, array, element):
+    if array is None:
+        return [element]
+    else:
+        array.append(element)
+        return array
 }
 
 program
@@ -118,7 +125,7 @@ expression returns [expr = None]
     @init {tmp_var = None}
     : primary
     {$expr = $primary.expr}
-    | e1=expression ('[' e2=expression{tmp_var = [$e2.expr] if tmp_var is None else tmp_var.append($e2.expr)} ']')+
+    | e1=expression ('[' e2=expression{tmp_var = self.append_to_array(tmp_var, $e2.expr)} ']')+
     {$expr = ArrayGetter($e1.expr, tmp_var)}
     | e=expression '(' (expressionList{tmp_var = $expressionList.args})? ')'
     {$expr = get_call_function_statement($e.text, tmp_var)}
