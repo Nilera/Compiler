@@ -58,7 +58,7 @@ class ArrayCreator(NameMangling, CodeGenerator):
         for index in range(len(self)):
             dimension = self[index]
             dimension.code(code_builder, program_state)
-            code_builder.add_data("%s_%d" % (program_state.array_name, index), "dw", "0")
+            code_builder.add_data("%s_%d" % (program_state.array_name, index), "dd", "0")
             code_builder.add_instruction("mov", "ebx", "eax")
             code_builder.add_instruction("pop", "eax")
             code_builder.add_instruction("cdq")

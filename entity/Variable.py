@@ -1,9 +1,9 @@
 from Platform import Platform
+from entity.Array import Array
 from entity.CodeGenerator import CodeGenerator
-from entity.Expression import Operator, ArrayCreator, ArrayGetter
+from entity.Expression import ArrayCreator, ArrayGetter
 from entity.NameMangling import NameMangling
-from entity.Scalar import IntScalar, BoolScalar, VariableScalar
-from entity.Statement import CallFunctionStatement
+from entity.Scalar import IntScalar, BoolScalar
 
 
 class Variable(NameMangling, CodeGenerator):
@@ -38,43 +38,23 @@ class Variable(NameMangling, CodeGenerator):
             if self.__value_type != expr_type:
                 raise ValueError(
                     "%s expression has incorrect type <%s> = <%s>" % (self.unmangling(), self.__value_type, expr_type))
-            if isinstance(self.expression, ArrayCreator):
-                pass
-            elif isinstance(self.expression, ArrayGetter):
-                pass
+            if isinstance(self.__value_type, Array):
+                code_builder.add_data(self.name, "dd", "0")
+                program_state.set_array_name(self.name)
+                if isinstance(self.expression, ArrayCreator):
+                    if code_builder.platform == Platform.win32:
+                        code_builder.add_extern("__imp__malloc")
+                    else:
+                        code_builder.add_extern("malloc")
+                    self.expression.code(code_builder, program_state)
+                elif isinstance(self.expression, ArrayGetter):
+                    self.expression.code_generator(code_builder, program_state)
+                program_state.set_array_name("")
+                code_builder.add_instruction("mov", "[%s]" % self.name, "eax")
             elif isinstance(self.expression, (IntScalar, BoolScalar)):
                 code_builder.add_data(self.name, size_type, self.expression.value)
             else:
-
-
-
-            if isinstance(self.expression, (IntScalar, BoolScalar)):
-                code_builder.add_data(self.name, size_type, self.expression.value)
-            elif isinstance(self.expression, ArrayCreator):
-                if code_builder.platform == Platform.win32:
-                    code_builder.add_extern("__imp__malloc")
-                else:
-                    code_builder.add_extern("malloc")
-                code_builder.add_data(self.name, size_type, "0")
-                program_state.set_array_name(self.name)
-                self.expression.code(code_builder, program_state)
-                program_state.set_array_name("")
-                code_builder.add_instruction("mov", "[%s]" % self.name, "eax")
-            elif isinstance(self.expression, VariableScalar):
-                code_builder.add_data(self.name, size_type, default_value)
-                code_builder.add_instruction("mov", "eax", "[%s]" % self.expression.value)
-                code_builder.add_instruction("mov", "[%s]" % self.name, "eax")
-            elif isinstance(self.expression, ArrayGetter):
-                code_builder.add_data(self.name, "dw", "0")
-                program_state.set_array_name(self.name)
-                self.expression.code_generator(code_builder, program_state)
-                program_state.set_array_name("")
-                code_builder.add_instruction("mov", "[%s]" % self.name, "eax")
-            elif isinstance(self.expression, Operator):
-                code_builder.add_data(self.name, size_type, default_value)
-                self.expression.code(code_builder, program_state)
-                code_builder.add_instruction("mov", "[%s]" % self.name, "eax")
-            elif isinstance(self.expression, CallFunctionStatement):
+                # VariableScalar, Operator, CallFunctionStatement, ArrayGetter
                 code_builder.add_data(self.name, size_type, default_value)
                 self.expression.code(code_builder, program_state)
                 code_builder.add_instruction("mov", "[%s]" % self.name, "eax")
