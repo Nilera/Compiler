@@ -1,0 +1,25 @@
+boolean isPalindrome(char[] string) {
+    int len = length(string);
+
+    int start = 0;
+    int end = len - 1;
+
+    while (start != end && start + 1 != end) {
+        if (string[start] != string[end]) {
+            return false;
+        }
+        start = start + 1;
+        end = end - 1;
+    }
+    return string[start] == string[end];
+}
+
+void main() {
+    char[] pali = new char[256];
+    read(pali);
+    if (isPalindrome(pali)) {
+        write("true");
+    } else {
+        write("false");
+    }
+}

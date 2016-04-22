@@ -157,6 +157,16 @@ class CompilerTest(unittest.TestCase):
         result = abstract_test_with_out("tests/hard_hello", "%s\n%d\n" % (name, age))
         self.assertEqual("Hello %s, %d y/o" % (name, age), result)
 
+    def test_palindrome(self):
+        string = "123321"
+        result = abstract_test_with_out("tests/palindrome", "%s\n" % string)
+        self.assertEqual("true", result)
+
+    def test_palindrome2(self):
+        string = "123"
+        result = abstract_test_with_out("tests/palindrome", "%s\n" % string)
+        self.assertEqual("false", result)
+
 
 if __name__ == '__main__':
     unittest.main()
