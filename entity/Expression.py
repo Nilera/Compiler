@@ -340,7 +340,7 @@ class Or(BooleanBinaryOperator):
         super(Or, self).__init__(left, right)
 
     def code_operator(self, code_builder, program_state):
-        code_builder.add_instruction("and", "eax", "ebx")
+        code_builder.add_instruction("or", "eax", "ebx")
 
     def _get_instruction(self):
         raise NotImplementedError
@@ -354,7 +354,7 @@ class And(BooleanBinaryOperator):
         super(And, self).__init__(left, right)
 
     def code_operator(self, code_builder, program_state):
-        code_builder.add_instruction("or", "eax", "ebx")
+        code_builder.add_instruction("and", "eax", "ebx")
 
     def _get_instruction(self):
         raise NotImplementedError

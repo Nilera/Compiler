@@ -54,8 +54,6 @@ class Function(StatementsContainer):
         code_builder.add_instruction("sub", "esp", str(4 * (len(self._params) + 1)))
         for statement_i in range(len(self._params), len(self)):
             self[statement_i].code(code_builder, program_state)
-        code_builder.add_instruction("add", "esp", "4")
-        code_builder.add_instruction("ret")
         program_state.set_function_name("")
 
     def value_type(self, program_state=None):

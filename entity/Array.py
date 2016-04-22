@@ -50,7 +50,9 @@ class ArrayCreator(NameMangling, CodeGenerator):
         return len(self.__dimensions_sizes)
 
     def name_mangling(self, function_name, mangled_name):
-        pass
+        for dimension_size in self.__dimensions_sizes:
+            if isinstance(dimension_size, NameMangling):
+                dimension_size.name_mangling(function_name, mangled_name)
 
     def code(self, code_builder, program_state):
         """
@@ -104,6 +106,9 @@ class ArrayGetter(NameMangling, CodeGenerator):
 
     def name_mangling(self, function_name, mangled_name):
         self.__name.name_mangling(function_name, mangled_name)
+        for dimension_size in self.__dimensions_sizes:
+            if isinstance(dimension_size, NameMangling):
+                dimension_size.name_mangling(function_name, mangled_name)
 
     def code(self, code_builder, program_state):
         self.code_getter(code_builder, program_state)

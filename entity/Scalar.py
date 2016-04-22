@@ -119,7 +119,7 @@ class StringScalar(Scalar):
 
     def code(self, code_builder, program_state):
         str_hash = "s_%s" % hashlib.md5(self.value.encode("UTF-8")).hexdigest()
-        code_builder.add_data(str_hash, Type.char.size_type(), self._value)
+        code_builder.add_data(str_hash, "db", self._value)
         code_builder.add_instruction("mov", "eax", str_hash)
         code_builder.add_instruction("mov", "ecx", len(self.value) + 1)
 

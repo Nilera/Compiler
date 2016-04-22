@@ -1,7 +1,6 @@
 from entity.Array import Array
 from entity.CodeGenerator import CodeGenerator
 from entity.NameMangling import NameMangling
-from entity.Scalar import IntScalar, BoolScalar, CharScalar, StringScalar
 
 
 class Variable(NameMangling, CodeGenerator):
@@ -45,8 +44,6 @@ class Variable(NameMangling, CodeGenerator):
                 program_state.set_array_name(prev_array_name)
 
                 code_builder.add_instruction("mov", "[%s]" % self.name, "eax")
-            elif isinstance(self.expression, (IntScalar, BoolScalar, CharScalar)):
-                code_builder.add_data(self.name, size_type, self.expression.value)
             else:
                 # VariableScalar, Operator, CallFunctionStatement, ArrayGetter
                 code_builder.add_data(self.name, size_type, "0")

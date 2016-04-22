@@ -2,10 +2,10 @@ from operator import contains
 
 from entity.Array import Array
 from entity.CodeGenerator import CodeGenerator
-from entity.Expression import BooleanBinaryOperator, Plus
+from entity.Expression import Plus
 from entity.Function import ReadFunction, WriteFunction, MainFunction, ArrayCopyFunction, LengthFunction, StrcatFunction
 from entity.NameMangling import NameMangling
-from entity.Scalar import VariableScalar, BoolScalar, IntScalar
+from entity.Scalar import VariableScalar, IntScalar
 from entity.StatementsContainer import StatementsContainer
 from entity.Type import Type
 
@@ -24,12 +24,7 @@ class WhileStatement(StatementsContainer):
         label = "%s_while_%d" % (program_state.function_name, program_state.get_while_number())
         exit_label = "%s_exit" % label
         code_builder.add_label(label)
-        if isinstance(self.__condition, BoolScalar):
-            code_builder.add_instruction("mov", "eax", self.__condition.value)
-        elif isinstance(self.__condition, VariableScalar) \
-                and program_state.get_variable(self.__condition.value).type_value == Type.boolean:
-            code_builder.add_instruction("mov", "eax", "[%s]" % self.__condition.value)
-        elif isinstance(self.__condition, BooleanBinaryOperator):
+        if self.__condition.value_type(program_state) == Type.boolean:
             self.__condition.code(code_builder, program_state)
         else:
             raise SyntaxError("while condition should be boolean value or boolean expression")
@@ -68,12 +63,7 @@ class IfStatement(StatementsContainer):
     def code(self, code_builder, program_state):
         label = "%s_if_%d" % (program_state.function_name, program_state.get_if_number())
         exit_label = "%s_exit" % label
-        if isinstance(self.__condition, BoolScalar):
-            code_builder.add_instruction("mov", "eax", self.__condition.value)
-        elif isinstance(self.__condition, VariableScalar) \
-                and program_state.get_variable(self.__condition.value).value_type() == Type.boolean:
-            code_builder.add_instruction("mov", "eax", "[%s]" % self.__condition.value)
-        elif isinstance(self.__condition, BooleanBinaryOperator):
+        if self.__condition.value_type(program_state) == Type.boolean:
             self.__condition.code(code_builder, program_state)
         else:
             raise SyntaxError("while condition should be boolean value or boolean expression")
@@ -129,6 +119,8 @@ class ReturnStatement(NameMangling, CodeGenerator):
             raise SyntaxError("function couldn't return array")
         self.__expression.code(code_builder, program_state)
         code_builder.add_instruction("push", "eax")
+        code_builder.add_instruction("add", "esp", "4")
+        code_builder.add_instruction("ret")
 
     def value_type(self, program_state):
         return None
