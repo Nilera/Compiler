@@ -10,7 +10,7 @@ class ProgramState(object):
         self.__function_dict = {}
         self.__if_counter = 0
         self.__while_counter = 0
-        self.__io_function = 0
+        self.__global_function_number = 0
 
     def is_global_statement(self):
         return self.__function_name == ""
@@ -55,6 +55,6 @@ class ProgramState(object):
         self.__while_counter += 1
         return self.__while_counter
 
-    def get_io_function_number(self):
-        self.__io_function += 1
-        return self.__io_function
+    def get_global_function_number(self):
+        self.__global_function_number += 1
+        return self.__global_function_number

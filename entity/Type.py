@@ -6,10 +6,6 @@ class Type(Enum):
     boolean = 1
     char = 2
 
-    def default_value(self):
-        if self == Type.int or self == Type.boolean or self == Type.char:
-            return 0
-
     def format_string(self):
         if self == Type.int or self == Type.boolean:
             return "int_format", "db", "\"%d\""

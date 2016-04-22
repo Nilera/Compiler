@@ -1,6 +1,6 @@
 int fun() {
     int a = 5;
-    boolean b;
+    boolean b = false;
     if (a == 5) {
         b = true;
         return a;

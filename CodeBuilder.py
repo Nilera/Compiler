@@ -18,7 +18,29 @@ class CodeBuilder(object):
     def platform(self):
         return self.__platform
 
-    def add_extern(self, name):
+    def add_extern_malloc(self):
+        if self.platform == Platform.win32:
+            self.__add_extern("__imp__malloc")
+        else:
+            self.__add_extern("malloc")
+
+    def add_extern_exit(self):
+        if self.platform == Platform.win32:
+            self.__add_extern("__imp__ExitProcess@4")
+
+    def add_extern_scanf(self):
+        if self.platform == Platform.win32:
+            self.__add_extern("__imp__scanf")
+        else:
+            self.__add_extern("scanf")
+
+    def add_extern_printf(self):
+        if self.platform == Platform.win32:
+            self.__add_extern("__imp__printf")
+        else:
+            self.__add_extern("printf")
+
+    def __add_extern(self, name):
         self.__externs.add("extern %s" % name)
 
     def add_global_function(self, function):

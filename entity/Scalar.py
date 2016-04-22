@@ -1,3 +1,4 @@
+import hashlib
 from operator import contains
 
 from entity.Array import Array
@@ -95,26 +96,32 @@ class BoolScalar(Scalar):
 class CharScalar(Scalar):
     def __init__(self, value):
         if not value.startswith("\'"):
-            raise ValueError("%s is not char value" % value[1])
-        super(CharScalar, self).__init__(value[1])
+            raise ValueError("%s is not char value" % value)
+        super(CharScalar, self).__init__(value)
 
     def value_type(self, program_state):
         return Type.char
 
     @property
     def value(self):
-        return ord(self._value)
+        return ord(self._value[1])
 
 
 class StringScalar(Scalar):
     def __init__(self, value):
         if not value.startswith("\""):
-            raise ValueError("%s is not char value" % value[1:len(value) - 1])
-        super(StringScalar, self).__init__(value[1:len(value) - 1])
+            raise ValueError("%s is not string value" % value)
+        super(StringScalar, self).__init__(value)
+
+    def code(self, code_builder, program_state):
+        str_hash = "s_%s" % hashlib.md5(self.value.encode("UTF-8")).hexdigest()
+        code_builder.add_data(str_hash, "dd", self._value)
+        code_builder.add_instruction("mov", "eax", str_hash)
+        code_builder.add_instruction("mov", "ecx", len(self.value) + 1)
 
     def value_type(self, program_state):
         return Array(Type.char, 1)
 
     @property
     def value(self):
-        return self._value
+        return self._value[1:len(self._value) - 1]

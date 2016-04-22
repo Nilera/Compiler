@@ -1,4 +1,4 @@
-from entity.Array import ArrayGetter, Array
+from entity.Array import ArrayGetter, ArrayCreator
 from entity.CodeGenerator import CodeGenerator
 from entity.NameMangling import NameMangling
 from entity.Type import Type
@@ -73,17 +73,12 @@ class AssignmentOperator(Operator):
         if var_type != expr_type:
             raise ValueError(
                 "%s expression has incorrect type <%s> = <%s>" % (self.unmangling(), var_type, expr_type))
+        if isinstance(expr_type, ArrayCreator):
+            raise SyntaxError("%s array creator couldn't be use here" % self.unmangling())
 
-        prev_array_name = program_state.array_name
-        program_state.set_array_name(var_name)
         self.__expression.code(code_builder, program_state)
-        program_state.set_array_name(prev_array_name)
-
         if isinstance(self.__target, ArrayGetter):
-            if isinstance(self.__target.value_type(program_state), Array):
-                raise SyntaxError("%s operation is not supported" % self.unmangling())
-            else:
-                self.__target.code_setter(code_builder, program_state)
+            self.__target.code_setter(code_builder, program_state)
         else:
             code_builder.add_instruction("mov", "[%s]" % var_name, "eax")
 
@@ -189,6 +184,11 @@ class BooleanBinaryOperator(BinaryOperator):
         super(BooleanBinaryOperator, self).__init__(left, right)
 
     def code_operator(self, code_builder, program_state):
+        left_type = self._left.value_type(program_state)
+        right_type = self._right.value_type(program_state)
+        if left_type != right_type:
+            raise ValueError("%s: operator %s cannot be applied for bool" % (self.unmangling(), self._get_sign()))
+
         label = "%s_bool_op_%d_skip" % (program_state.function_name, program_state.get_if_number())
         code_builder.add_instruction("cmp", "eax", "ebx")
         code_builder.add_instruction("mov", "eax", "1")

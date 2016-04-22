@@ -116,9 +116,8 @@ primitiveType returns [value_type = None]
     ;
 
 variableDeclarator returns [name_value = None]
-    @init {expr = None}
-    : Identifier ('=' expression{expr = $expression.expr})?
-    {$name_value = ($Identifier.text, expr)}
+    : Identifier '=' expression
+    {$name_value = ($Identifier.text, $expression.expr)}
     ;
 
 expression returns [expr = None]

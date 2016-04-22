@@ -3,7 +3,7 @@ from operator import contains
 from entity.Array import Array
 from entity.CodeGenerator import CodeGenerator
 from entity.Expression import BooleanBinaryOperator
-from entity.Function import ReadFunction, WriteFunction, MainFunction
+from entity.Function import ReadFunction, WriteFunction, MainFunction, ArrayCopyFunction
 from entity.NameMangling import NameMangling
 from entity.Scalar import VariableScalar, BoolScalar
 from entity.StatementsContainer import StatementsContainer
@@ -147,6 +147,8 @@ def get_call_function_statement(function_name, args=None):
         return CallReadFunction(function_name, args)
     elif function_name == WriteFunction.FUNCTION_NAME:
         return CallWriteFunction(function_name, args)
+    elif function_name == ArrayCopyFunction.FUNCTION_NAME:
+        return CallArrayCopyFunction(function_name, args)
     else:
         return CallFunctionStatement(function_name, args)
 
@@ -165,6 +167,16 @@ class CallFunctionStatement(NameMangling, CodeGenerator):
             self._args[i].name_mangling(function_name, mangled_name)
 
     def code(self, code_builder, program_state):
+        self._code_validation(program_state)
+        for arg in reversed(self._args):
+            arg.code(code_builder, program_state)
+            code_builder.add_instruction("push", "eax")
+        code_builder.add_instruction("call", self._function_name)
+        code_builder.add_instruction("sub", "esp", "8")
+        code_builder.add_instruction("pop", "eax")
+        code_builder.add_instruction("add", "esp", str(4 * (len(self._args) + 1)))
+
+    def _code_validation(self, program_state):
         if not program_state.contains_function(self._function_name):
             raise SyntaxError("no function \"%s\" in scope" % NameMangling.unmangling(self._function_name))
         params = program_state.get_function(self._function_name).params
@@ -175,13 +187,6 @@ class CallFunctionStatement(NameMangling, CodeGenerator):
                     "no arguments" if len(params) == 0 else ", ".join(str(x.value_type(program_state)) for x in params),
                     "no arguments" if len(params) == 0 else ", ".join(
                         str(x.value_type(program_state)) for x in self._args)))
-        for arg in reversed(self._args):
-            arg.code(code_builder, program_state)
-            code_builder.add_instruction("push", "eax")
-        code_builder.add_instruction("call", self._function_name)
-        code_builder.add_instruction("sub", "esp", "8")
-        code_builder.add_instruction("pop", "eax")
-        code_builder.add_instruction("add", "esp", str(4 * (len(self._args) + 1)))
 
     def __is_valid_params(self, params, program_state):
         for i in range(len(params)):
@@ -217,6 +222,7 @@ class CallReadFunction(CallFunctionStatement):
             raise SyntaxError(
                 "actual and formal argument lists of function read is differ in length\nrequired: 1\nfound: %d" % len(
                     self._args))
+        # TODO: add string
         if not isinstance(self._args[0], VariableScalar):
             raise SyntaxError("function read cannot be applied to given arguments\nrequired: variable name")
         read_fun = ReadFunction(None, self._function_name, self._args)
@@ -234,8 +240,9 @@ class CallWriteFunction(CallFunctionStatement):
                 "actual and formal argument lists of function write is differ in length\nrequired: 1\nfound: %d" % len(
                     self._args))
         # TODO: add string
-        if not isinstance(self._args[0].value_type(program_state), Type):
-            raise SyntaxError("function write cannot be applied to given arguments\nrequired: int or boolean")
+        if not isinstance(self._args[0].value_type(program_state), (Type, Array)):
+            raise SyntaxError(
+                "function write cannot be applied to given arguments\nrequired: int, boolean, char or char[]")
         write_fun = WriteFunction(None, self._function_name, self._args)
         code_builder.add_instruction("call", write_fun.get_label(program_state))
         code_builder.add_global_function(write_fun)
@@ -257,6 +264,60 @@ class CallPopFunction(CallFunctionStatement):
         self._args[0].code(code_builder, program_state)
         code_builder.add_instruction("pop", "eax")
         code_builder.add_instruction("mov", "[%s]" % self._args[0].name, "eax")
+
+    def value_type(self, program_state):
+        return None
+
+
+class CallArrayCopyFunction(CallFunctionStatement):
+    def __init__(self, function_name, args):
+        super(CallArrayCopyFunction, self).__init__(function_name, args)
+
+    def code(self, code_builder, program_state):
+        self._code_validation(program_state)
+        src = self._args[0].value_type(program_state)
+        dist = self._args[2].value_type(program_state)
+
+        self._args[1].code(code_builder, program_state)
+        code_builder.add_instruction("mov", "ebx", str(src.sizeof()))
+        code_builder.add_instruction("cdq")
+        code_builder.add_instruction("imul", "ebx")
+        code_builder.add_instruction("mov", "esi", "eax")
+        self._args[0].code(code_builder, program_state)
+        code_builder.add_instruction("add", "esi", "eax")
+
+        self._args[3].code(code_builder, program_state)
+        code_builder.add_instruction("mov", "ebx", str(dist.sizeof()))
+        code_builder.add_instruction("cdq")
+        code_builder.add_instruction("imul", "ebx")
+        code_builder.add_instruction("mov", "edi", "eax")
+        self._args[2].code(code_builder, program_state)
+        code_builder.add_instruction("add", "edi", "eax")
+
+        self._args[4].code(code_builder, program_state)
+        code_builder.add_instruction("mov", "ecx", "eax")
+        code_builder.add_instruction("mov", "eax", "edi")
+        code_builder.add_instruction("mov", "ebx", "esi")
+
+        arr_copy_function = ArrayCopyFunction(None, self._function_name, self._args)
+        arr_copy_function.code(code_builder, program_state)
+
+    def _code_validation(self, program_state):
+        if len(self._args) != 5:
+            raise SyntaxError(
+                "actual and formal argument lists of function %s is differ in length\nrequired: 5\nfound: %d" % (len(
+                    self._args), ArrayCopyFunction.FUNCTION_NAME))
+        src = self._args[0].value_type(program_state)
+        dist = self._args[2].value_type(program_state)
+        if not isinstance(src, Array) or src.dimension != 1 or \
+                not self._args[1].value_type(program_state) == Type.int or \
+                not isinstance(dist, Array) or dist.dimension != 1 or \
+                not self._args[3].value_type(program_state) == Type.int or \
+                not self._args[4].value_type(program_state) == Type.int:
+            raise SyntaxError(
+                "function write cannot be applied to given arguments\nrequired: array[] int array[] int int")
+        if src.value_type != dist.value_type:
+            raise SyntaxError("%s src and dist array type is different" % str(self))
 
     def value_type(self, program_state):
         return None

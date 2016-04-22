@@ -1,5 +1,5 @@
-int n;
-int k;
+int n = 0;
+int k = 0;
 
 int power(int k, int n) {
     int r = 1;

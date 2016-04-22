@@ -6,7 +6,7 @@ from entity.StatementsContainer import StatementsContainer
 def get_function(return_type, name, params=None, function_state=None):
     if name == MainFunction.FUNCTION_NAME:
         return MainFunction(return_type, name, params, function_state)
-    elif name == ReadFunction.FUNCTION_NAME or name == WriteFunction.FUNCTION_NAME:
+    elif name == ReadFunction.FUNCTION_NAME or name == WriteFunction.FUNCTION_NAME or ArrayCopyFunction.FUNCTION_NAME:
         raise NameError("The name of the function \"%s\" is already taken by standard function" % name)
     else:
         return Function(return_type, name, params, function_state)
@@ -93,7 +93,7 @@ class MainFunction(Function):
         for statement in self:
             statement.code(code_builder, program_state)
         if code_builder.platform == Platform.win32:
-            code_builder.add_extern("__imp__ExitProcess@4")
+            code_builder.add_extern_exit()
             code_builder.add_instruction("push", "0")
             code_builder.add_instruction("call", "[__imp__ExitProcess@4]")
         else:
@@ -109,7 +109,7 @@ class ReadFunction(Function):
 
     def __init__(self, return_type, name, params, function_state=None):
         super(ReadFunction, self).__init__(return_type, name, params, function_state)
-        self.__io_number = None
+        self.__global_function_number = None
 
     def _validate(self, return_type, name, params=None, function_state=None):
         pass
@@ -117,10 +117,7 @@ class ReadFunction(Function):
     def code(self, code_builder, program_state):
         program_state.set_function_name(self._name)
         format_string = self._params[0].value_type(program_state).format_string()
-        if code_builder.platform == Platform.win32:
-            code_builder.add_extern("__imp__scanf")
-        else:
-            code_builder.add_extern("scanf")
+        code_builder.add_extern_scanf()
         code_builder.add_label(self.get_label(program_state))
         code_builder.add_instruction("push", self._params[0].value)
         code_builder.add_instruction("push", format_string[0])
@@ -134,9 +131,9 @@ class ReadFunction(Function):
         program_state.set_function_name("")
 
     def get_label(self, program_state):
-        if self.__io_number is None:
-            self.__io_number = program_state.get_io_function_number()
-        return "__%s_%d" % (self._name, self.__io_number)
+        if self.__global_function_number is None:
+            self.__global_function_number = program_state.get_global_function_number()
+        return "__%s_%d" % (self._name, self.__global_function_number)
 
     def value_type(self, program_state=None):
         return None
@@ -147,7 +144,7 @@ class WriteFunction(Function):
 
     def __init__(self, return_type, name, params, function_state=None):
         super(WriteFunction, self).__init__(return_type, name, params, function_state)
-        self.__io_number = None
+        self.__global_function_number = None
 
     def _validate(self, return_type, name, params=None, function_state=None):
         pass
@@ -155,10 +152,7 @@ class WriteFunction(Function):
     def code(self, code_builder, program_state):
         program_state.set_function_name(self._name)
         format_string = self._params[0].value_type(program_state).format_string()
-        if code_builder.platform == Platform.win32:
-            code_builder.add_extern("__imp__printf")
-        else:
-            code_builder.add_extern("printf")
+        code_builder.add_extern_printf()
         code_builder.add_label(self.get_label(program_state))
         self._params[0].code(code_builder, program_state)
         code_builder.add_instruction("push", "eax")
@@ -173,9 +167,31 @@ class WriteFunction(Function):
         program_state.set_function_name("")
 
     def get_label(self, program_state):
-        if self.__io_number is None:
-            self.__io_number = program_state.get_io_function_number()
-        return "__%s_%d" % (self._name, self.__io_number)
+        if self.__global_function_number is None:
+            self.__global_function_number = program_state.get_global_function_number()
+        return "__%s_%d" % (self._name, self.__global_function_number)
+
+    def value_type(self, program_state=None):
+        return None
+
+
+class ArrayCopyFunction(Function):
+    FUNCTION_NAME = "arr_copy"
+
+    def __init__(self, return_type, name, params, function_state=None):
+        super(ArrayCopyFunction, self).__init__(return_type, name, params, function_state)
+
+    def _validate(self, return_type, name, params=None, function_state=None):
+        pass
+
+    def code(self, code_builder, program_state):
+        label = "copy_loop_%d" % program_state.get_while_number()
+        code_builder.add_label(label)
+        code_builder.add_instruction("mov", "edx", "[eax]")
+        code_builder.add_instruction("mov", "[ebx]", "edx")
+        code_builder.add_instruction("add", "eax", 4)
+        code_builder.add_instruction("add", "ebx", 4)
+        code_builder.add_instruction("loop", label)
 
     def value_type(self, program_state=None):
         return None
