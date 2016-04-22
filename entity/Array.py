@@ -20,7 +20,7 @@ class Array(object):
         return self.__value_type.sizeof()
 
     def size_type(self):
-        return self.__value_type.size_type()
+        return "dd"
 
     def __str__(self):
         return "%s%s" % (self.__value_type, "[]" * self.__dimension)

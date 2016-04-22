@@ -22,7 +22,7 @@ class Type(Enum):
         if self == Type.int or self == Type.boolean:
             return "dd"
         elif self == Type.char:
-            return "dd"
+            return "db"
 
     def __str__(self):
         return self.name
