@@ -1,6 +1,7 @@
 from Platform import Platform
 from entity.NameMangling import NameMangling
 from entity.StatementsContainer import StatementsContainer
+from entity.Type import Type
 
 
 def get_function(return_type, name, params=None, function_state=None):
@@ -185,12 +186,18 @@ class ArrayCopyFunction(Function):
         pass
 
     def code(self, code_builder, program_state):
+        src = self._params[0].value_type(program_state)
+        src_value_type = src.value_type
         label = "copy_loop_%d" % program_state.get_while_number()
         code_builder.add_label(label)
-        code_builder.add_instruction("mov", "edx", "[eax]")
-        code_builder.add_instruction("mov", "[ebx]", "edx")
-        code_builder.add_instruction("add", "eax", 4)
-        code_builder.add_instruction("add", "ebx", 4)
+        if src_value_type == Type.char:
+            code_builder.add_instruction("mov", "dl", "[eax]")
+            code_builder.add_instruction("mov", "[ebx]", "dl")
+        else:
+            code_builder.add_instruction("mov", "edx", "[eax]")
+            code_builder.add_instruction("mov", "[ebx]", "edx")
+        code_builder.add_instruction("add", "eax", src.sizeof())
+        code_builder.add_instruction("add", "ebx", src.sizeof())
         code_builder.add_instruction("loop", label)
 
     def value_type(self, program_state=None):

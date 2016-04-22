@@ -99,6 +99,10 @@ class CharScalar(Scalar):
             raise ValueError("%s is not char value" % value)
         super(CharScalar, self).__init__(value)
 
+    def code(self, code_builder, program_state):
+        code_builder.add_instruction("xor", "eax", "eax")
+        code_builder.add_instruction("mov", "al", self.value)
+
     def value_type(self, program_state):
         return Type.char
 
@@ -115,7 +119,7 @@ class StringScalar(Scalar):
 
     def code(self, code_builder, program_state):
         str_hash = "s_%s" % hashlib.md5(self.value.encode("UTF-8")).hexdigest()
-        code_builder.add_data(str_hash, "dd", self._value)
+        code_builder.add_data(str_hash, Type.char.size_type(), self._value)
         code_builder.add_instruction("mov", "eax", str_hash)
         code_builder.add_instruction("mov", "ecx", len(self.value) + 1)
 

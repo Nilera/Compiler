@@ -73,9 +73,6 @@ class ArrayCreator(NameMangling, CodeGenerator):
         else:
             code_builder.add_instruction("call", "malloc")
         code_builder.add_instruction("mov", "ecx", "eax")
-        # code_builder.add_instruction("test", "eax", "eax")
-        # code_builder.add_instruction("jz", "_fail_malloc")
-        # TODO: add malloc fail
         code_builder.add_instruction("add", "esp", "4")
 
     def value_type(self, program_state):
@@ -113,31 +110,32 @@ class ArrayGetter(NameMangling, CodeGenerator):
     def code_getter(self, code_builder, program_state):
         return_type = program_state.get_variable(self.value).value_type(program_state)
         self.__code_offset(code_builder, program_state, return_type)
+        self.__code_length(code_builder, program_state, return_type)
         code_builder.add_instruction("mov", "eax", "[%s]" % self.__name)
         code_builder.add_instruction("add", "eax", "ebx")
         if not isinstance(self.value_type(program_state), Array):
-            code_builder.add_instruction("mov", "eax", "[eax]")
-            self.__code_length(code_builder, program_state, return_type)
+            if self.value_type(program_state) == Type.char:
+                code_builder.add_instruction("mov", "ebx", "eax")
+                code_builder.add_instruction("xor", "eax", "eax")
+                code_builder.add_instruction("mov", "al", "[ebx]")
+            else:
+                code_builder.add_instruction("mov", "eax", "[eax]")
 
     def code_setter(self, code_builder, program_state):
         """
         Sets value from eax to array. If settable value is array then it will be copy to new memory.
         """
-        self.__code_offset(code_builder, program_state,
-                           program_state.get_variable(self.value).value_type(program_state))
+        set_value_type = program_state.get_variable(self.value).value_type(program_state)
+        self.__code_offset(code_builder, program_state, set_value_type)
         code_builder.add_instruction("add", "ebx", "[%s]" % self.__name)
         if isinstance(self.value_type(program_state), Array):
-            arr_copy_function = ArrayCopyFunction(None, ArrayCopyFunction.FUNCTION_NAME, None)
+            arr_copy_function = ArrayCopyFunction(None, ArrayCopyFunction.FUNCTION_NAME, [set_value_type])
             arr_copy_function.code(code_builder, program_state)
-            # label = "copy_loop_%d" % program_state.get_while_number()
-            # code_builder.add_label(label)
-            # code_builder.add_instruction("mov", "edx", "[eax]")
-            # code_builder.add_instruction("mov", "[ebx]", "edx")
-            # code_builder.add_instruction("inc", "eax")
-            # code_builder.add_instruction("inc", "ebx")
-            # code_builder.add_instruction("loop", label)
         else:
-            code_builder.add_instruction("mov", "[ebx]", "eax")
+            if set_value_type.value_type(program_state) == Type.char:
+                code_builder.add_instruction("mov", "[ebx]", "al")
+            else:
+                code_builder.add_instruction("mov", "[ebx]", "eax")
 
     def __code_length(self, code_builder, program_state, array):
         """
