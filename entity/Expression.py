@@ -193,11 +193,6 @@ class BooleanBinaryOperator(BinaryOperator):
         super(BooleanBinaryOperator, self).__init__(left, right)
 
     def code_operator(self, code_builder, program_state):
-        left_type = self._left.value_type(program_state)
-        right_type = self._right.value_type(program_state)
-        if left_type != Type.boolean or right_type != Type.boolean:
-            raise ValueError("%s: operator %s can be applied for bool only" % (self.unmangling(), self._get_sign()))
-
         label = "%s_bool_op_%d_skip" % (program_state.function_name, program_state.get_if_number())
         code_builder.add_instruction("cmp", "eax", "ebx")
         code_builder.add_instruction("mov", "eax", "1")
