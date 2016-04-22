@@ -68,11 +68,12 @@ class ArrayCreator(NameMangling, CodeGenerator):
             code_builder.add_instruction("cdq")
             code_builder.add_instruction("imul", "ebx")
             code_builder.add_instruction("push", "eax")
+        code_builder.add_instruction("mov", "ebx", "eax")
         if code_builder.platform == Platform.win32:
             code_builder.add_instruction("call", "[__imp__malloc]")
         else:
             code_builder.add_instruction("call", "malloc")
-        code_builder.add_instruction("mov", "ecx", "eax")
+        code_builder.add_instruction("mov", "ecx", "ebx")
         code_builder.add_instruction("add", "esp", "4")
 
     def value_type(self, program_state):
@@ -129,7 +130,7 @@ class ArrayGetter(NameMangling, CodeGenerator):
         self.__code_offset(code_builder, program_state, set_value_type)
         code_builder.add_instruction("add", "ebx", "[%s]" % self.__name)
         if isinstance(self.value_type(program_state), Array):
-            arr_copy_function = ArrayCopyFunction(None, ArrayCopyFunction.FUNCTION_NAME, [set_value_type])
+            arr_copy_function = ArrayCopyFunction(None, ArrayCopyFunction.FUNCTION_NAME, [set_value_type.value_type])
             arr_copy_function.code(code_builder, program_state)
         else:
             if set_value_type.value_type == Type.char:

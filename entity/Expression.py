@@ -1,6 +1,8 @@
-from entity.Array import ArrayGetter, ArrayCreator
+from entity.Array import ArrayGetter, ArrayCreator, Array
 from entity.CodeGenerator import CodeGenerator
+from entity.Function import ArrayCopyFunction
 from entity.NameMangling import NameMangling
+from entity.Scalar import VariableScalar
 from entity.Type import Type
 
 
@@ -79,17 +81,24 @@ class AssignmentOperator(Operator):
         self.__expression.code(code_builder, program_state)
         if isinstance(self.__target, ArrayGetter):
             self.__target.code_setter(code_builder, program_state)
+        elif isinstance(self.__target, VariableScalar) and isinstance(var_type, Array):
+            code_builder.add_instruction("mov", "ebx", "[%s]" % var_name)
+            arr_copy_function = ArrayCopyFunction(None, ArrayCopyFunction.FUNCTION_NAME, [var_type.value_type])
+            arr_copy_function.code(code_builder, program_state)
         else:
             code_builder.add_instruction("mov", "[%s]" % var_name, "eax")
 
-    def value_type(self, program_state):
-        raise NotImplementedError
 
-    def unmangling(self):
-        return "%s = %s" % (self.__target.unmangling(), self.__expression.unmangling())
+def value_type(self, program_state):
+    raise NotImplementedError
 
-    def __str__(self):
-        return "%s = %s" % (self.__target, self.__expression)
+
+def unmangling(self):
+    return "%s = %s" % (self.__target.unmangling(), self.__expression.unmangling())
+
+
+def __str__(self):
+    return "%s = %s" % (self.__target, self.__expression)
 
 
 class UnaryOperator(Operator):
@@ -186,8 +195,8 @@ class BooleanBinaryOperator(BinaryOperator):
     def code_operator(self, code_builder, program_state):
         left_type = self._left.value_type(program_state)
         right_type = self._right.value_type(program_state)
-        if left_type != right_type:
-            raise ValueError("%s: operator %s cannot be applied for bool" % (self.unmangling(), self._get_sign()))
+        if left_type != Type.boolean or right_type != Type.boolean:
+            raise ValueError("%s: operator %s can be applied for bool only" % (self.unmangling(), self._get_sign()))
 
         label = "%s_bool_op_%d_skip" % (program_state.function_name, program_state.get_if_number())
         code_builder.add_instruction("cmp", "eax", "ebx")

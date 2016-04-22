@@ -2,10 +2,10 @@ from operator import contains
 
 from entity.Array import Array
 from entity.CodeGenerator import CodeGenerator
-from entity.Expression import BooleanBinaryOperator
-from entity.Function import ReadFunction, WriteFunction, MainFunction, ArrayCopyFunction
+from entity.Expression import BooleanBinaryOperator, Plus
+from entity.Function import ReadFunction, WriteFunction, MainFunction, ArrayCopyFunction, LengthFunction, StrcatFunction
 from entity.NameMangling import NameMangling
-from entity.Scalar import VariableScalar, BoolScalar
+from entity.Scalar import VariableScalar, BoolScalar, IntScalar
 from entity.StatementsContainer import StatementsContainer
 from entity.Type import Type
 
@@ -149,6 +149,10 @@ def get_call_function_statement(function_name, args=None):
         return CallWriteFunction(function_name, args)
     elif function_name == ArrayCopyFunction.FUNCTION_NAME:
         return CallArrayCopyFunction(function_name, args)
+    elif function_name == LengthFunction.FUNCTION_NAME:
+        return CallLengthFunction(function_name, args)
+    elif function_name == StrcatFunction.FUNCTION_NAME:
+        return CallStrcatFunction(function_name, args)
     else:
         return CallFunctionStatement(function_name, args)
 
@@ -225,7 +229,7 @@ class CallReadFunction(CallFunctionStatement):
         arr_param = self._args[0].value_type(program_state)
         if not isinstance(self._args[0], VariableScalar) and not (
                     isinstance(arr_param, Array) and arr_param.value_type == Type.char):
-            raise SyntaxError("function read cannot be applied to given arguments")
+            raise SyntaxError("function 'read' cannot be applied to given arguments")
         read_fun = ReadFunction(None, self._function_name, self._args)
         code_builder.add_instruction("call", read_fun.get_label(program_state))
         code_builder.add_global_function(read_fun)
@@ -242,7 +246,7 @@ class CallWriteFunction(CallFunctionStatement):
                     self._args))
         if not isinstance(self._args[0].value_type(program_state), (Type, Array)):
             raise SyntaxError(
-                "function write cannot be applied to given arguments\nrequired: int, boolean, char or char[]")
+                "function 'write' cannot be applied to given arguments\nrequired: int, boolean, char or char[]")
         write_fun = WriteFunction(None, self._function_name, self._args)
         code_builder.add_instruction("call", write_fun.get_label(program_state))
         code_builder.add_global_function(write_fun)
@@ -296,10 +300,10 @@ class CallArrayCopyFunction(CallFunctionStatement):
 
         self._args[4].code(code_builder, program_state)
         code_builder.add_instruction("mov", "ecx", "eax")
-        code_builder.add_instruction("mov", "eax", "edi")
-        code_builder.add_instruction("mov", "ebx", "esi")
+        code_builder.add_instruction("mov", "eax", "esi")
+        code_builder.add_instruction("mov", "ebx", "edi")
 
-        arr_copy_function = ArrayCopyFunction(None, self._function_name, self._args)
+        arr_copy_function = ArrayCopyFunction(None, self._function_name, [src.value_type])
         arr_copy_function.code(code_builder, program_state)
 
     def _code_validation(self, program_state):
@@ -315,9 +319,62 @@ class CallArrayCopyFunction(CallFunctionStatement):
                 not self._args[3].value_type(program_state) == Type.int or \
                 not self._args[4].value_type(program_state) == Type.int:
             raise SyntaxError(
-                "function write cannot be applied to given arguments\nrequired: array[] int array[] int int")
+                "function 'arraycopy' cannot be applied to given arguments\nrequired: array[] int array[] int int")
         if src.value_type != dist.value_type:
             raise SyntaxError("%s src and dist array type is different" % str(self))
 
     def value_type(self, program_state):
         return None
+
+
+class CallStrcatFunction(CallFunctionStatement):
+    def __init__(self, function_name, args):
+        super(CallStrcatFunction, self).__init__(function_name, args)
+
+    def code(self, code_builder, program_state):
+        self._code_validation(program_state)
+        dist = self._args[0]
+        src = self._args[1]
+        dist_length = LengthFunction(Type.int, LengthFunction.FUNCTION_NAME, [dist])
+        src_length = LengthFunction(Type.int, LengthFunction.FUNCTION_NAME, [src])
+        call_arraycopy = CallArrayCopyFunction(self._function_name,
+                                               [src, IntScalar("0"), dist, dist_length,
+                                                Plus(src_length, IntScalar("1"))])
+        call_arraycopy.code(code_builder, program_state)
+
+    def _code_validation(self, program_state):
+        if len(self._args) != 2:
+            raise SyntaxError(
+                "actual and formal argument lists of function %s is differ in length\nrequired: 2\nfound: %d" % (len(
+                    self._args), ArrayCopyFunction.FUNCTION_NAME))
+        dist = self._args[0].value_type(program_state)
+        src = self._args[1].value_type(program_state)
+        if not isinstance(src, Array) or src.dimension != 1 or src.value_type != Type.char or \
+                not isinstance(dist, Array) or dist.dimension != 1 or dist.value_type != Type.char:
+            raise SyntaxError(
+                "function 'strcat' cannot be applied to given arguments\nrequired: char[] char[]")
+
+    def value_type(self, program_state):
+        return None
+
+
+class CallLengthFunction(CallFunctionStatement):
+    def __init__(self, function_name, args):
+        super(CallLengthFunction, self).__init__(function_name, args)
+
+    def code(self, code_builder, program_state):
+        self._code_validation(program_state)
+        length_function = LengthFunction(Type.int, self._function_name, self._args)
+        length_function.code(code_builder, program_state)
+
+    def _code_validation(self, program_state):
+        if len(self._args) != 1:
+            raise SyntaxError(
+                "actual and formal argument lists of function %s is differ in length\nrequired: 1\nfound: %d" % (len(
+                    self._args), ArrayCopyFunction.FUNCTION_NAME))
+        if not isinstance(self._args[0].value_type(program_state), Array):
+            raise SyntaxError(
+                "function 'length' cannot be applied to given arguments\nrequired: array[]")
+
+    def value_type(self, program_state):
+        return Type.int

@@ -7,7 +7,7 @@ from entity.Type import Type
 def get_function(return_type, name, params=None, function_state=None):
     if name == MainFunction.FUNCTION_NAME:
         return MainFunction(return_type, name, params, function_state)
-    elif name == ReadFunction.FUNCTION_NAME or name == WriteFunction.FUNCTION_NAME or name == ArrayCopyFunction.FUNCTION_NAME:
+    elif name == ReadFunction.FUNCTION_NAME or name == WriteFunction.FUNCTION_NAME or name == ArrayCopyFunction.FUNCTION_NAME or name == LengthFunction.FUNCTION_NAME or name == StrcatFunction.FUNCTION_NAME:
         raise NameError("The name of the function \"%s\" is already taken by standard function" % name)
     else:
         return Function(return_type, name, params, function_state)
@@ -120,8 +120,13 @@ class ReadFunction(Function):
         format_string = self._params[0].value_type(program_state).format_string()
         code_builder.add_extern_scanf()
         code_builder.add_label(self.get_label(program_state))
-        self._params[0].code(code_builder, program_state)
-        code_builder.add_instruction("push", "eax")
+        from entity.Array import ArrayGetter
+        from entity.Array import Array
+        if isinstance(self._params[0].value_type(program_state), (Array, ArrayGetter)):
+            self._params[0].code(code_builder, program_state)
+            code_builder.add_instruction("push", "eax")
+        else:
+            code_builder.add_instruction("push", self._params[0].value)
         code_builder.add_instruction("push", format_string[0])
         if code_builder.platform == Platform.win32:
             code_builder.add_instruction("call", "[__imp__scanf]")
@@ -178,7 +183,7 @@ class WriteFunction(Function):
 
 
 class ArrayCopyFunction(Function):
-    FUNCTION_NAME = "arr_copy"
+    FUNCTION_NAME = "arraycopy"
 
     def __init__(self, return_type, name, params, function_state=None):
         super(ArrayCopyFunction, self).__init__(return_type, name, params, function_state)
@@ -187,8 +192,7 @@ class ArrayCopyFunction(Function):
         pass
 
     def code(self, code_builder, program_state):
-        src = self._params[0].value_type(program_state)
-        src_value_type = src.value_type
+        src_value_type = self._params[0]
         label = "copy_loop_%d" % program_state.get_while_number()
         code_builder.add_label(label)
         if src_value_type == Type.char:
@@ -197,9 +201,58 @@ class ArrayCopyFunction(Function):
         else:
             code_builder.add_instruction("mov", "edx", "[eax]")
             code_builder.add_instruction("mov", "[ebx]", "edx")
-        code_builder.add_instruction("add", "eax", src.sizeof())
-        code_builder.add_instruction("add", "ebx", src.sizeof())
+        code_builder.add_instruction("add", "eax", src_value_type.sizeof())
+        code_builder.add_instruction("add", "ebx", src_value_type.sizeof())
         code_builder.add_instruction("loop", label)
 
     def value_type(self, program_state=None):
         return None
+
+
+class StrcatFunction(Function):
+    """
+    Copy of arraycopy function for string only.
+    """
+    FUNCTION_NAME = "strcat"
+
+    def __init__(self, return_type, name, params, function_state=None):
+        super(StrcatFunction, self).__init__(return_type, name, params, function_state)
+
+    def _validate(self, return_type, name, params=None, function_state=None):
+        pass
+
+    def code(self, code_builder, program_state):
+        pass
+
+    def value_type(self, program_state=None):
+        return None
+
+
+class LengthFunction(Function):
+    FUNCTION_NAME = "length"
+
+    def __init__(self, return_type, name, params, function_state=None):
+        super(LengthFunction, self).__init__(return_type, name, params, function_state)
+
+    def _validate(self, return_type, name, params=None, function_state=None):
+        pass
+
+    def code(self, code_builder, program_state):
+        src = self._params[0].value_type(program_state)
+        self._params[0].code(code_builder, program_state)
+        if src.value_type == Type.char:
+            code_builder.add_instruction("xor", "ecx", "ecx")
+            label = "__length_%d" % program_state.get_if_number()
+            label_exit = "%s_exit" % label
+            code_builder.add_label(label)
+            code_builder.add_instruction("mov", "bl", "[eax]")
+            code_builder.add_instruction("cmp", "bl", 0)
+            code_builder.add_instruction("jz", label_exit)
+            code_builder.add_instruction("inc", "eax")
+            code_builder.add_instruction("inc", "ecx")
+            code_builder.add_instruction("jmp", label)
+            code_builder.add_label(label_exit)
+        code_builder.add_instruction("mov", "eax", "ecx")
+
+    def value_type(self, program_state=None):
+        return Type.int
