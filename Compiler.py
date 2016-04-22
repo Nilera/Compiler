@@ -5,14 +5,14 @@ import os
 import sys
 from subprocess import Popen
 
-from grammar.GrammarLexer import GrammarLexer, FileStream
-from grammar.ParserError import ParserError
 from antlr4 import CommonTokenStream
 
 from CodeBuilder import CodeBuilder
 from Platform import Platform
 from ProgramState import ProgramState
+from grammar.GrammarLexer import GrammarLexer, FileStream
 from grammar.GrammarParser import GrammarParser
+from grammar.ParserError import ParserError
 
 
 def main(argv):
@@ -51,6 +51,8 @@ def main(argv):
         print("Syntax error:", e.msg, file=sys.stderr)
     except ValueError as e:
         print("Value error:", e, file=sys.stderr)
+    except NameError as e:
+        print("Name error:", e, file=sys.stderr)
 
 
 def link_executable_file(platform, asm_file, obj_file, output_file):
@@ -60,7 +62,7 @@ def link_executable_file(platform, asm_file, obj_file, output_file):
         yasm_cmd = ["yasm", "-f", Platform.elf32.name, "-o", obj_file, asm_file]
         p = Popen(yasm_cmd)
         p.wait()
-        # os.remove(asm_file)
+        os.remove(asm_file)
         if platform == Platform.elf32:
             gcc_cmd = ["gcc", "-o", output_file, obj_file]
         else:

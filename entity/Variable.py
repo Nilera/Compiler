@@ -29,26 +29,29 @@ class Variable(NameMangling, CodeGenerator):
     def code(self, code_builder, program_state):
         program_state.add_variable(self)
         size_type = self.__value_type.size_type()
-        expr_type = self.expression.value_type(program_state)
-        if self.__value_type != expr_type:
-            raise ValueError(
-                "%s expression has incorrect type <%s> = <%s>" % (self.unmangling(), self.__value_type, expr_type))
-        if isinstance(self.__value_type, Array):
-            code_builder.add_data(self.name, "dd", "0")
-
-            prev_array_name = program_state.array_name
-            program_state.set_array_name(self.name)
-            self.expression.code(code_builder, program_state)
-            program_state.set_array_name(prev_array_name)
-
-            code_builder.add_instruction("mov", "[%s]" % self.name, "eax")
-        elif isinstance(self.expression, (IntScalar, BoolScalar, CharScalar)):
-            code_builder.add_data(self.name, size_type, self.expression.value)
-        else:
-            # VariableScalar, Operator, CallFunctionStatement, ArrayGetter
+        if self.expression is None:
             code_builder.add_data(self.name, size_type, "0")
-            self.expression.code(code_builder, program_state)
-            code_builder.add_instruction("mov", "[%s]" % self.name, "eax")
+        else:
+            expr_type = self.expression.value_type(program_state)
+            if self.__value_type != expr_type:
+                raise ValueError(
+                    "%s expression has incorrect type <%s> = <%s>" % (self.unmangling(), self.__value_type, expr_type))
+            if isinstance(self.__value_type, Array):
+                code_builder.add_data(self.name, "dd", "0")
+
+                prev_array_name = program_state.array_name
+                program_state.set_array_name(self.name)
+                self.expression.code(code_builder, program_state)
+                program_state.set_array_name(prev_array_name)
+
+                code_builder.add_instruction("mov", "[%s]" % self.name, "eax")
+            elif isinstance(self.expression, (IntScalar, BoolScalar, CharScalar)):
+                code_builder.add_data(self.name, size_type, self.expression.value)
+            else:
+                # VariableScalar, Operator, CallFunctionStatement, ArrayGetter
+                code_builder.add_data(self.name, size_type, "0")
+                self.expression.code(code_builder, program_state)
+                code_builder.add_instruction("mov", "[%s]" % self.name, "eax")
 
     def value_type(self, program_state=None):
         return self.__value_type

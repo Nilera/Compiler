@@ -132,7 +132,7 @@ class ArrayGetter(NameMangling, CodeGenerator):
             arr_copy_function = ArrayCopyFunction(None, ArrayCopyFunction.FUNCTION_NAME, [set_value_type])
             arr_copy_function.code(code_builder, program_state)
         else:
-            if set_value_type.value_type(program_state) == Type.char:
+            if set_value_type.value_type == Type.char:
                 code_builder.add_instruction("mov", "[ebx]", "al")
             else:
                 code_builder.add_instruction("mov", "[ebx]", "eax")

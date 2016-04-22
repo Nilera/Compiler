@@ -7,7 +7,7 @@ from entity.Type import Type
 def get_function(return_type, name, params=None, function_state=None):
     if name == MainFunction.FUNCTION_NAME:
         return MainFunction(return_type, name, params, function_state)
-    elif name == ReadFunction.FUNCTION_NAME or name == WriteFunction.FUNCTION_NAME or ArrayCopyFunction.FUNCTION_NAME:
+    elif name == ReadFunction.FUNCTION_NAME or name == WriteFunction.FUNCTION_NAME or name == ArrayCopyFunction.FUNCTION_NAME:
         raise NameError("The name of the function \"%s\" is already taken by standard function" % name)
     else:
         return Function(return_type, name, params, function_state)

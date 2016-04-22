@@ -1,5 +1,0 @@
-void main() {
-    int[][] a = new int[4][3];
-    int[] b = new int[3];
-    a[0] = b;
-}

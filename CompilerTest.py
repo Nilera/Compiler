@@ -147,10 +147,6 @@ class CompilerTest(unittest.TestCase):
         result = abstract_test_incorrect_program("tests/try_to_return_array")
         self.assertEqual(True, result)
 
-    def test_try_to_insert_array_into_array(self):
-        result = abstract_test_incorrect_program("tests/try_to_insert_array_into_array")
-        self.assertEqual(True, result)
-
     def test_two_dimension_array(self):
         result = abstract_test_with_out("tests/two_dimension_array")
         self.assertEqual("15", result)
