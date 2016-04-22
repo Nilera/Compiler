@@ -62,7 +62,7 @@ class ArrayCreator(NameMangling, CodeGenerator):
             dimension = self[index]
             dimension.code(code_builder, program_state)
             code_builder.add_data("%s_%d" % (program_state.array_name, index), "dd", "0")
-            code_builder.add_instruction("mov", "[%s_%d]" % (program_state.array_name, index), "ebx")
+            code_builder.add_instruction("mov", "[%s_%d]" % (program_state.array_name, index), "eax")
             code_builder.add_instruction("mov", "ebx", "eax")
             code_builder.add_instruction("pop", "eax")
             code_builder.add_instruction("cdq")
@@ -110,7 +110,6 @@ class ArrayGetter(NameMangling, CodeGenerator):
     def code_getter(self, code_builder, program_state):
         return_type = program_state.get_variable(self.value).value_type(program_state)
         self.__code_offset(code_builder, program_state, return_type)
-        self.__code_length(code_builder, program_state, return_type)
         code_builder.add_instruction("mov", "eax", "[%s]" % self.__name)
         code_builder.add_instruction("add", "eax", "ebx")
         if not isinstance(self.value_type(program_state), Array):
@@ -120,6 +119,7 @@ class ArrayGetter(NameMangling, CodeGenerator):
                 code_builder.add_instruction("mov", "al", "[ebx]")
             else:
                 code_builder.add_instruction("mov", "eax", "[eax]")
+        self.__code_length(code_builder, program_state, return_type)
 
     def code_setter(self, code_builder, program_state):
         """

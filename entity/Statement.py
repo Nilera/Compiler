@@ -222,9 +222,10 @@ class CallReadFunction(CallFunctionStatement):
             raise SyntaxError(
                 "actual and formal argument lists of function read is differ in length\nrequired: 1\nfound: %d" % len(
                     self._args))
-        # TODO: add string
-        if not isinstance(self._args[0], VariableScalar):
-            raise SyntaxError("function read cannot be applied to given arguments\nrequired: variable name")
+        arr_param = self._args[0].value_type(program_state)
+        if not isinstance(self._args[0], VariableScalar) and not (
+                    isinstance(arr_param, Array) and arr_param.value_type == Type.char):
+            raise SyntaxError("function read cannot be applied to given arguments")
         read_fun = ReadFunction(None, self._function_name, self._args)
         code_builder.add_instruction("call", read_fun.get_label(program_state))
         code_builder.add_global_function(read_fun)
@@ -239,7 +240,6 @@ class CallWriteFunction(CallFunctionStatement):
             raise SyntaxError(
                 "actual and formal argument lists of function write is differ in length\nrequired: 1\nfound: %d" % len(
                     self._args))
-        # TODO: add string
         if not isinstance(self._args[0].value_type(program_state), (Type, Array)):
             raise SyntaxError(
                 "function write cannot be applied to given arguments\nrequired: int, boolean, char or char[]")

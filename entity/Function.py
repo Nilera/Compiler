@@ -120,7 +120,8 @@ class ReadFunction(Function):
         format_string = self._params[0].value_type(program_state).format_string()
         code_builder.add_extern_scanf()
         code_builder.add_label(self.get_label(program_state))
-        code_builder.add_instruction("push", self._params[0].value)
+        self._params[0].code(code_builder, program_state)
+        code_builder.add_instruction("push", "eax")
         code_builder.add_instruction("push", format_string[0])
         if code_builder.platform == Platform.win32:
             code_builder.add_instruction("call", "[__imp__scanf]")
