@@ -151,6 +151,12 @@ class CompilerTest(unittest.TestCase):
         result = abstract_test_with_out("tests/two_dimension_array")
         self.assertEqual("15", result)
 
+    def test_hard_hello(self):
+        name = "Ivan"
+        age = 23
+        result = abstract_test_with_out("tests/hard_hello", "%s\n%d\n" % (name, age))
+        self.assertEqual("Hello %s, %d y/o" % (name, age), result)
+
 
 if __name__ == '__main__':
     unittest.main()

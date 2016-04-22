@@ -1,0 +1,15 @@
+void main() {
+    char[][] information = new char[2][80];
+    write("What is you name?");
+    read(information[0]);
+    write("How old are you?");
+    read(information[1]);
+
+    char[] greetings = new char[256];
+    greetings = "Hello ";
+    strcat(greetings, information[0]);
+    strcat(greetings, ", ");
+    strcat(greetings, information[1]);
+    strcat(greetings, " y/o");
+    write(greetings);
+}
