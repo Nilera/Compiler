@@ -8,15 +8,25 @@ class StatementsContainer(NameMangling, CodeGenerator):
         self._statements = []
 
     def __getitem__(self, index):
+        """
+        :type index: int
+        :rtype: entity.CodeGenerator.CodeGenerator | entity.NameMangling.NameMangling
+        """
         return self._statements[index]
 
     def __len__(self):
         return len(self._statements)
 
     def add(self, statement):
+        """
+        :type statement: entity.CodeGenerator.CodeGenerator | entity.NameMangling.NameMangling
+        """
         self._statements.append(statement)
 
     def add_all(self, statements):
+        """
+        :type statements: list
+        """
         self._statements.extend(statements)
 
     def name_mangling(self, function_name, mangled_name):
@@ -32,8 +42,12 @@ class StatementsContainer(NameMangling, CodeGenerator):
     def unmangling(self):
         return NotImplementedError
 
-    # True - has return statement, False - otherwise and None if it is incorrect StatementContainer
     def has_return_statement(self, statements):
+        """
+        :param statements: StatementContainer
+        :return: True - has return statement, False - otherwise and None if it is incorrect StatementContainer
+        :rtype: bool
+        """
         from entity.Statement import ReturnStatement
         from entity.Statement import IfStatement
         result = False
@@ -49,11 +63,20 @@ class StatementsContainer(NameMangling, CodeGenerator):
         return result
 
     def __has_return_statement_return(self, index, statements):
+        """
+        :type index: int
+        :type statements: StatementContainer
+        :rtype: bool
+        """
         if index + 1 != len(statements):
             raise SyntaxError("program contains unreachable statements")
         return True
 
     def __has_return_statement_if(self, if_statement):
+        """
+        :type if_statement: StatementContainer
+        :rtype: bool
+        """
         if_node = if_statement
         else_node = if_statement.else_statement
         if_res = if_node.has_return_statement(if_node)

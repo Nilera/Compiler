@@ -1,10 +1,15 @@
 from entity.Array import Array
 from entity.CodeGenerator import CodeGenerator
-from entity.NameMangling import NameMangling
+from entity.NameMangling import NameMangling, unmangling
 
 
 class Variable(NameMangling, CodeGenerator):
     def __init__(self, value_type, name, expression=None):
+        """
+        :type value_type: entity.Type.Type | entity.Array.Array
+        :type name: str
+        :type expression: entity.Expression.Operator | entity.Array.ArrayCreator | entity.Array.ArrayGetter
+        """
         self.__value_type = value_type
         self.__name = name
         self.__expression = expression
@@ -26,12 +31,17 @@ class Variable(NameMangling, CodeGenerator):
             mangled_name[prev_name] = self.__name
 
     def code(self, code_builder, program_state):
+        """
+        :type code_builder: CodeBuilder.CodeBuilder
+        :type program_state: ProgramState.ProgramState
+        :rtype: None
+        """
         program_state.add_variable(self)
         size_type = self.__value_type.size_type()
         if self.expression is None:
             code_builder.add_data(self.name, size_type, "0")
         else:
-            expr_type = self.expression.value_type(program_state)
+            expr_type = self.__expression.value_type(program_state)
             if self.__value_type != expr_type:
                 raise ValueError(
                     "%s expression has incorrect type <%s> = <%s>" % (self.unmangling(), self.__value_type, expr_type))
@@ -54,8 +64,7 @@ class Variable(NameMangling, CodeGenerator):
         return self.__value_type
 
     def unmangling(self):
-        return "%s %s = %s" % (
-            str(self.__value_type), NameMangling.unmangling(self.__name), self.__expression.unmangling())
+        return "%s %s = %s" % (str(self.__value_type), unmangling(self.__name), self.__expression.unmangling())
 
     def __str__(self):
         assign = "" if self.__expression is None else " = %s" % str(self.__expression)

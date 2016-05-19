@@ -3,7 +3,7 @@ from operator import contains
 
 from entity.Array import Array
 from entity.CodeGenerator import CodeGenerator
-from entity.NameMangling import NameMangling
+from entity.NameMangling import NameMangling, unmangling
 from entity.Returnable import Returnable
 from entity.Type import Type
 
@@ -11,6 +11,7 @@ from entity.Type import Type
 def get_scalar(value):
     """
     :type value: str
+    :rtype: str | int
     """
     if value.isdigit():
         return IntScalar(value)
@@ -26,11 +27,17 @@ def get_scalar(value):
 
 class Scalar(NameMangling, CodeGenerator, Returnable):
     def __init__(self, value):
+        """
+        :type value: str
+        """
         super(Scalar, self).__init__()
         self._value = value
 
     @property
     def value(self):
+        """
+        :rtype: int | str
+        """
         return self._value
 
     def name_mangling(self, function_name, mangled_name):
@@ -51,6 +58,9 @@ class Scalar(NameMangling, CodeGenerator, Returnable):
 
 class VariableScalar(Scalar):
     def __init__(self, value):
+        """
+        :type value: str
+        """
         super(VariableScalar, self).__init__(value)
 
     def name_mangling(self, function_name, mangled_name):
@@ -66,7 +76,7 @@ class VariableScalar(Scalar):
         return program_state.get_variable(self._value).value_type()
 
     def unmangling(self):
-        return NameMangling.unmangling(self._value)
+        return unmangling(self._value)
 
 
 class IntScalar(Scalar):
@@ -90,6 +100,9 @@ class BoolScalar(Scalar):
 
     @property
     def value(self):
+        """
+        :rtype: int
+        """
         return 0 if self._value == "false" else 1
 
 
@@ -108,6 +121,9 @@ class CharScalar(Scalar):
 
     @property
     def value(self):
+        """
+        :rtype: int
+        """
         return ord(self._value[1])
 
 
@@ -128,4 +144,7 @@ class StringScalar(Scalar):
 
     @property
     def value(self):
+        """
+        :rtype: str
+        """
         return self._value[1:len(self._value) - 1]

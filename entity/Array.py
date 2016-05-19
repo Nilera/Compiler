@@ -1,25 +1,38 @@
 from Platform import Platform
 from entity.CodeGenerator import CodeGenerator
 from entity.Function import ArrayCopyFunction
-from entity.NameMangling import NameMangling
+from entity.NameMangling import NameMangling, unmangling
 from entity.Type import Type
 
 
 class Array(object):
     def __init__(self, value_type, dimension):
+        """
+        :type value_type: entity.Type.Type
+        :type dimension: int
+        """
         self.__value_type = value_type
         self.__dimension = dimension
 
     def format_string(self):
+        """
+        :rtype: str
+        """
         if self.__value_type == Type.char and self.__dimension == 1:
             return "string_format", "db", "\"%s\""
         else:
             raise SyntaxError("couldn't write %s" % self)
 
     def sizeof(self):
+        """
+        :rtype: int
+        """
         return self.__value_type.sizeof()
 
     def size_type(self):
+        """
+        :rtype: str
+        """
         return "dd"
 
     def __str__(self):
@@ -40,10 +53,18 @@ class Array(object):
 
 class ArrayCreator(NameMangling, CodeGenerator):
     def __init__(self, value_type, dimensions_sizes):
+        """
+        :type value_type: entity.Type.Type
+        :type dimensions_sizes: list
+        """
         self.__value_type = value_type
         self.__dimensions_sizes = dimensions_sizes
 
     def __getitem__(self, index):
+        """
+        :type index: int
+        :rtype: entity.Scalar.VariableScalar | entity.Scalar.IntScalar | entity.Expression.Operator
+        """
         return self.__dimensions_sizes[index]
 
     def __len__(self):
@@ -90,11 +111,19 @@ class ArrayCreator(NameMangling, CodeGenerator):
 
 class ArrayGetter(NameMangling, CodeGenerator):
     def __init__(self, name, dimensions_sizes):
+        """
+        :type name: entity.Scalar.VariableScalar
+        :type dimensions_sizes: list
+        """
         super(ArrayGetter, self).__init__()
         self.__name = name
         self.__dimensions_sizes = dimensions_sizes
 
     def __getitem__(self, index):
+        """
+        :type index: int
+        :type: int
+        """
         return self.__dimensions_sizes[index]
 
     def __len__(self):
@@ -196,8 +225,7 @@ class ArrayGetter(NameMangling, CodeGenerator):
             return Array(arr_var_type.value_type, arr_var_type.dimension - len(self))
 
     def unmangling(self):
-        return "%s%s" % (
-            NameMangling.unmangling(self.value), "[" + "][".join(str(x) for x in self.__dimensions_sizes) + "]")
+        return "%s%s" % (unmangling(self.value), "[" + "][".join(str(x) for x in self.__dimensions_sizes) + "]")
 
     def __str__(self):
         return "%s%s" % (self.value, "[" + "][".join(str(x) for x in self.__dimensions_sizes) + "]")

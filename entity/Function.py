@@ -1,10 +1,17 @@
 from Platform import Platform
-from entity.NameMangling import NameMangling
+from entity.NameMangling import NameMangling, unmangling
 from entity.StatementsContainer import StatementsContainer
 from entity.Type import Type
 
 
 def get_function(return_type, name, params=None, function_state=None):
+    """
+    :type return_type: entity.Type.Type
+    :type name: str
+    :type params: list
+    :type function_state: list
+    :rtype: entity.Function.Function
+    """
     if name == MainFunction.FUNCTION_NAME:
         return MainFunction(return_type, name, params, function_state)
     elif name == ReadFunction.FUNCTION_NAME or name == WriteFunction.FUNCTION_NAME or name == ArrayCopyFunction.FUNCTION_NAME or name == LengthFunction.FUNCTION_NAME or name == StrcatFunction.FUNCTION_NAME:
@@ -15,6 +22,12 @@ def get_function(return_type, name, params=None, function_state=None):
 
 class Function(StatementsContainer):
     def __init__(self, return_type, name, params=None, function_state=None):
+        """
+        :type return_type: entity.Type.Type
+        :type name: str
+        :type params: list
+        :type function_state: list
+        """
         super(Function, self).__init__()
         self._validate(return_type, name, params, function_state)
         self._return_type = return_type
@@ -26,10 +39,17 @@ class Function(StatementsContainer):
         self.add_all([] if function_state is None else function_state)
 
     def _validate(self, return_type, name, params=None, function_state=None):
+        """
+        :type return_type: entity.Type.Type
+        :type name: str
+        :type params: list
+        :type function_state: list
+        :rtype: bool
+        """
         if return_type is None:
-            raise SyntaxError("return type of function %s couldn't be void" % NameMangling.unmangling(name))
+            raise SyntaxError("return type of function %s couldn't be void" % unmangling(name))
         if not self.has_return_statement(function_state):
-            raise SyntaxError("function %s: missing return statement" % NameMangling.unmangling(name))
+            raise SyntaxError("function %s: missing return statement" % unmangling(name))
 
     @property
     def name(self):
@@ -60,7 +80,7 @@ class Function(StatementsContainer):
         return self._return_type
 
     def unmangling(self):
-        return NameMangling.unmangling(self._name)
+        return unmangling(self._name)
 
     def __str__(self):
         params = "" if self._params is None else ", ".join(var.name for var in self._params)
@@ -136,6 +156,10 @@ class ReadFunction(Function):
         program_state.set_function_name("")
 
     def get_label(self, program_state):
+        """
+        :param program_state: ProgramState.ProgramState
+        :rtype: str
+        """
         if self.__global_function_number is None:
             self.__global_function_number = program_state.get_global_function_number()
         return "__%s_%d" % (self._name, self.__global_function_number)
@@ -172,6 +196,10 @@ class WriteFunction(Function):
         program_state.set_function_name("")
 
     def get_label(self, program_state):
+        """
+        :param program_state: ProgramState.ProgramState
+        :rtype: str
+        """
         if self.__global_function_number is None:
             self.__global_function_number = program_state.get_global_function_number()
         return "__%s_%d" % (self._name, self.__global_function_number)

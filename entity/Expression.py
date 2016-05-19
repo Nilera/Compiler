@@ -7,6 +7,12 @@ from entity.Type import Type
 
 
 def get_expression(sign, left=None, right=None):
+    """
+    :type sign: str
+    :type left: entity.Scalar.Scalar | entity.Expression.Operator
+    :type right: entity.Scalar.Scalar | entity.Expression.Operator
+    :rtype: entity.Expression.Operator
+    """
     if left is None:
         return UnaryPlus(right) if sign == "+" else UnaryMinus(right)
     else:
@@ -57,6 +63,10 @@ class Operator(NameMangling, CodeGenerator):
 
 class AssignmentOperator(Operator):
     def __init__(self, target, expression):
+        """
+        :type target: entity.Scalar.VariableScalar
+        :type expression: entity.Scalar.Scalar | entity.Expression.Operator
+        """
         super(AssignmentOperator, self).__init__()
         self.__target = target
         self.__expression = expression
@@ -88,21 +98,21 @@ class AssignmentOperator(Operator):
         else:
             code_builder.add_instruction("mov", "[%s]" % var_name, "eax")
 
+    def value_type(self, program_state):
+        raise NotImplementedError
 
-def value_type(self, program_state):
-    raise NotImplementedError
+    def unmangling(self):
+        return "%s = %s" % (self.__target.unmangling(), self.__expression.unmangling())
 
-
-def unmangling(self):
-    return "%s = %s" % (self.__target.unmangling(), self.__expression.unmangling())
-
-
-def __str__(self):
-    return "%s = %s" % (self.__target, self.__expression)
+    def __str__(self):
+        return "%s = %s" % (self.__target, self.__expression)
 
 
 class UnaryOperator(Operator):
     def __init__(self, value):
+        """
+        :type value: entity.Scalar.Scalar | entity.Expression.Operator
+        """
         super(UnaryOperator, self).__init__()
         self._value = value
 
@@ -119,6 +129,9 @@ class UnaryOperator(Operator):
         return Type.int
 
     def __get_sign(self):
+        """
+        :rtype: str
+        """
         raise NotImplementedError
 
     def unmangling(self):
@@ -150,6 +163,10 @@ class UnaryMinus(UnaryOperator):
 
 class BinaryOperator(Operator):
     def __init__(self, left, right):
+        """
+        :type left: entity.Scalar.Scalar | entity.Expression.Operator
+        :type right: entity.Scalar.Scalar | entity.Expression.Operator
+        """
         super(BinaryOperator, self).__init__()
         self._left = left
         self._right = right
@@ -179,6 +196,9 @@ class BinaryOperator(Operator):
         return Type.int
 
     def _get_sign(self):
+        """
+        :rtype: str
+        """
         raise NotImplementedError
 
     def unmangling(self):

@@ -4,7 +4,7 @@ from entity.Array import Array
 from entity.CodeGenerator import CodeGenerator
 from entity.Expression import Plus
 from entity.Function import ReadFunction, WriteFunction, MainFunction, ArrayCopyFunction, LengthFunction, StrcatFunction
-from entity.NameMangling import NameMangling
+from entity.NameMangling import NameMangling, unmangling
 from entity.Scalar import VariableScalar, IntScalar
 from entity.StatementsContainer import StatementsContainer
 from entity.Type import Type
@@ -12,6 +12,10 @@ from entity.Type import Type
 
 class WhileStatement(StatementsContainer):
     def __init__(self, condition, statements):
+        """
+        :type condition: entity.Expression.Operator | entity.Scalar.Scalar
+        :type statements: list
+        """
         super(WhileStatement, self).__init__()
         self.__condition = condition
         self.add_all(statements)
@@ -47,6 +51,11 @@ class WhileStatement(StatementsContainer):
 
 class IfStatement(StatementsContainer):
     def __init__(self, condition, statements, else_statement=None):
+        """
+        :type condition: entity.Expression.Operator | entity.Scalar.Scalar
+        :type statements: list
+        :type else_statement: entity.Statement.ElseStatement
+        """
         super(IfStatement, self).__init__()
         self.__condition = condition
         self.add_all(statements)
@@ -92,6 +101,9 @@ class IfStatement(StatementsContainer):
 
 class ElseStatement(StatementsContainer):
     def __init__(self, statements):
+        """
+        :type statements: list
+        """
         super(ElseStatement, self).__init__()
         self.add_all(statements)
 
@@ -111,6 +123,9 @@ class ElseStatement(StatementsContainer):
 
 class ReturnStatement(NameMangling, CodeGenerator):
     def __init__(self, expression):
+        """
+        :type expression: entity.NameMangling.NameMangling | entity.CodeGenerator.CodeGenerator
+        """
         self.__expression = expression
 
     def name_mangling(self, function_name, mangled_name):
@@ -153,6 +168,10 @@ def get_call_function_statement(function_name, args=None):
 
 class CallFunctionStatement(NameMangling, CodeGenerator):
     def __init__(self, function_name, args=None):
+        """
+        :type function_name: str
+        :type args: list
+        """
         super(CallFunctionStatement, self).__init__()
         self._function_name = function_name
         args = [] if args is None else args
@@ -175,8 +194,12 @@ class CallFunctionStatement(NameMangling, CodeGenerator):
         code_builder.add_instruction("add", "esp", str(4 * (len(self._args) + 1)))
 
     def _code_validation(self, program_state):
+        """
+        :type program_state: ProgramState.ProgramState
+        :rtype: bool
+        """
         if not program_state.contains_function(self._function_name):
-            raise SyntaxError("no function \"%s\" in scope" % NameMangling.unmangling(self._function_name))
+            raise SyntaxError("no function \"%s\" in scope" % unmangling(self._function_name))
         params = program_state.get_function(self._function_name).params
         if len(params) != len(self._args) or not self.__is_valid_params(params, program_state):
             raise SyntaxError(
@@ -187,6 +210,11 @@ class CallFunctionStatement(NameMangling, CodeGenerator):
                         str(x.value_type(program_state)) for x in self._args)))
 
     def __is_valid_params(self, params, program_state):
+        """
+        :type params: list
+        :type program_state: ProgramState.ProgramState
+        :rtype: bool
+        """
         for i in range(len(params)):
             arg1 = params[i].value_type(program_state)
             arg2 = self._args[i].value_type(program_state)
@@ -201,7 +229,7 @@ class CallFunctionStatement(NameMangling, CodeGenerator):
 
     def unmangling(self):
         args = "" if self._args is None else ", ".join(arg.unmangling() for arg in self._args)
-        return "%s(%s)" % (NameMangling.unmangling(self._function_name), args)
+        return "%s(%s)" % (unmangling(self._function_name), args)
 
     def __str__(self):
         args = "" if self._args is None else ", ".join(str(arg) for arg in self._args)
