@@ -1,0 +1,14 @@
+// http://acm.timus.ru/problem.aspx?space=1&num=2012
+
+int TASKS_NUMBER = 12;
+
+void main() {
+    int f = 0;
+    read(f);
+
+    if ((TASKS_NUMBER - f) * 45 < 4 * 60) {
+        write("YES");
+    } else {
+        write("NO");
+    }
+}

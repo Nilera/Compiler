@@ -1,7 +1,10 @@
 import os
+import random
 import subprocess
 import unittest
 from subprocess import Popen, PIPE
+
+import itertools
 
 
 def abstract_test_with_out(input_file, read_line=None):
@@ -166,6 +169,19 @@ class CompilerTest(unittest.TestCase):
         string = "123"
         result = abstract_test_with_out("tests/palindrome", "%s\n" % string)
         self.assertEqual("false", result)
+
+    def test_two_bandits(self):
+        for _ in itertools.repeat(None, 100):
+            a = random.randint(0, 9)
+            b = random.randint(0, 9 - a)
+            result = abstract_test_with_out("tests/two_bandits", "%d %d\n" % (a, b))
+            self.assertEqual("%d %d" % (max(0, b - 1), max(0, a - 1)), result, "Run two_bandits with %d %d" % (a, b))
+
+    def test_about_grisha(self):
+        for _ in itertools.repeat(None, 100):
+            a = random.randint(0, 11)
+            result = abstract_test_with_out("tests/about_grisha", "%d\n" % a)
+            self.assertEqual("YES" if (12 - a) * 45 <= 4 * 60 else "NO", result, "Run about_grisha with %d" % a)
 
 
 if __name__ == '__main__':

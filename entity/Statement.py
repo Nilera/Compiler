@@ -59,6 +59,8 @@ class IfStatement(StatementsContainer):
     def name_mangling(self, function_name, mangled_name):
         self.__condition.name_mangling(function_name, mangled_name)
         super().name_mangling(function_name, mangled_name)
+        if self.__else_statement is not None:
+            self.__else_statement.name_mangling(function_name, mangled_name)
 
     def code(self, code_builder, program_state):
         label = "%s_if_%d" % (program_state.function_name, program_state.get_if_number())

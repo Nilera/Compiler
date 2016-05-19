@@ -1,0 +1,21 @@
+// http://acm.timus.ru/problem.aspx?space=1&num=1409
+
+int max(int a, int b) {
+    if (a >= b) {
+        return a;
+    } else {
+        return b;
+    }
+}
+
+void main() {
+    int first = 0;
+    int second = 0;
+
+    read(first);
+    read(second);
+
+    write(max(0, second - 1));
+    write(" ");
+    write(max(0, first - 1));
+}

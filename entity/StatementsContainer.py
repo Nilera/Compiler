@@ -42,8 +42,7 @@ class StatementsContainer(NameMangling, CodeGenerator):
             if isinstance(statement, ReturnStatement):
                 return self.__has_return_statement_return(index, statements)
             elif isinstance(statement, IfStatement):
-                if_res = self.__has_return_statement_if(statement)
-                result = None if if_res is None or if_res else False
+                result = self.__has_return_statement_if(statement)
             elif isinstance(statement, StatementsContainer):
                 res = statement.has_return_statement(statement)
                 result = None if res is None or res else False
