@@ -1,5 +1,5 @@
 from Platform import Platform
-from entity.CodeGenerator import CodeGenerator
+from entity.CodeElement import CodeElement
 from entity.Function import ArrayCopyFunction
 from entity.NameMangling import NameMangling, unmangling
 from entity.Type import Type
@@ -51,7 +51,7 @@ class Array(object):
                           Array) and self.__value_type == other.value_type and self.__dimension == other.dimension
 
 
-class ArrayCreator(NameMangling, CodeGenerator):
+class ArrayCreator(CodeElement):
     def __init__(self, value_type, dimensions_sizes):
         """
         :type value_type: entity.Type.Type
@@ -102,14 +102,25 @@ class ArrayCreator(NameMangling, CodeGenerator):
     def value_type(self, program_state):
         return Array(self.__value_type, len(self.__dimensions_sizes))
 
+    def validate(self, program_state):
+        for index in range(len(self)):
+            dimension = self[index]
+            dimension.validate(program_state)
+
     def unmangling(self):
         return "new %s%s" % (self.__value_type, "[" + "][".join(str(x) for x in self.__dimensions_sizes) + "]")
+
+    def constant_folding(self, constants):
+        pass
+
+    def find_constant(self, constants):
+        pass
 
     def __str__(self):
         return self.unmangling()
 
 
-class ArrayGetter(NameMangling, CodeGenerator):
+class ArrayGetter(CodeElement):
     def __init__(self, name, dimensions_sizes):
         """
         :type name: entity.Scalar.VariableScalar
@@ -214,6 +225,10 @@ class ArrayGetter(NameMangling, CodeGenerator):
         code_builder.add_instruction("mov", "ebx", "eax")
         code_builder.add_instruction("pop", "eax")
 
+    def validate(self, program_state):
+        for i in range(len(self)):
+            self[i].validate(program_state)
+
     def value_type(self, program_state):
         arr_var = program_state.get_variable(self.value)
         arr_var_type = arr_var.value_type()
@@ -226,6 +241,12 @@ class ArrayGetter(NameMangling, CodeGenerator):
 
     def unmangling(self):
         return "%s%s" % (unmangling(self.value), "[" + "][".join(str(x) for x in self.__dimensions_sizes) + "]")
+
+    def constant_folding(self, constants):
+        pass
+
+    def find_constant(self, constants):
+        pass
 
     def __str__(self):
         return "%s%s" % (self.value, "[" + "][".join(str(x) for x in self.__dimensions_sizes) + "]")

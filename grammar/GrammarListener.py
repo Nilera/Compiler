@@ -5,15 +5,6 @@ if __name__ is not None and "." in __name__:
 else:
     from GrammarParser import GrammarParser
 
-from entity.Program import Program
-from entity.Variable import Variable
-from entity.Function import *
-from entity.Expression import *
-from entity.Type import Type
-from entity.Array import *
-from entity.Scalar import *
-from entity.Statement import *
-
 
 # This class defines a complete listener for a parse tree produced by GrammarParser.
 class GrammarListener(ParseTreeListener):

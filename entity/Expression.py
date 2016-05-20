@@ -1,8 +1,10 @@
+from operator import contains
+
 from entity.Array import ArrayGetter, ArrayCreator, Array
-from entity.CodeGenerator import CodeGenerator
+from entity.CodeElement import CodeElement
 from entity.Function import ArrayCopyFunction
 from entity.NameMangling import NameMangling
-from entity.Scalar import VariableScalar
+from entity.Scalar import VariableScalar, IntScalar, BoolScalar
 from entity.Type import Type
 
 
@@ -44,7 +46,7 @@ def get_expression(sign, left=None, right=None):
             return Or(left, right)
 
 
-class Operator(NameMangling, CodeGenerator):
+class Operator(CodeElement):
     def __init__(self):
         super(Operator, self).__init__()
 
@@ -57,14 +59,23 @@ class Operator(NameMangling, CodeGenerator):
     def value_type(self, program_state):
         raise NotImplementedError
 
+    def validate(self, program_state):
+        raise NotImplementedError
+
     def unmangling(self):
         raise NotImplementedError
+
+    def constant_folding(self, constants):
+        raise NotImplementedError
+
+    def find_constant(self, constants):
+        pass
 
 
 class AssignmentOperator(Operator):
     def __init__(self, target, expression):
         """
-        :type target: entity.Scalar.VariableScalar
+        :type target: entity.Scalar.VariableScalar | entity.Array.ArrayGetter
         :type expression: entity.Scalar.Scalar | entity.Expression.Operator
         """
         super(AssignmentOperator, self).__init__()
@@ -77,16 +88,7 @@ class AssignmentOperator(Operator):
 
     def code(self, code_builder, program_state):
         var_name = self.__target.value
-        if not program_state.contains_variable(var_name):
-            raise SyntaxError("no variable \"%s\" in scope" % self.__target.unmangling())
-
         var_type = self.__target.value_type(program_state)
-        expr_type = self.__expression.value_type(program_state)
-        if var_type != expr_type:
-            raise ValueError(
-                "%s expression has incorrect type <%s> = <%s>" % (self.unmangling(), var_type, expr_type))
-        if isinstance(expr_type, ArrayCreator):
-            raise SyntaxError("%s array creator couldn't be use here" % self.unmangling())
 
         self.__expression.code(code_builder, program_state)
         if isinstance(self.__target, ArrayGetter):
@@ -101,8 +103,34 @@ class AssignmentOperator(Operator):
     def value_type(self, program_state):
         raise NotImplementedError
 
+    def validate(self, program_state):
+        var_name = self.__target.value
+        if not program_state.contains_variable(var_name):
+            raise SyntaxError("no variable \"%s\" in scope" % self.__target.unmangling())
+
+        var_type = self.__target.value_type(program_state)
+        expr_type = self.__expression.value_type(program_state)
+        if var_type != expr_type:
+            raise ValueError(
+                "%s expression has incorrect type <%s> = <%s>" % (self.unmangling(), var_type, expr_type))
+        if isinstance(expr_type, ArrayCreator):
+            raise SyntaxError("%s array creator couldn't be use here" % self.unmangling())
+
+        self.__expression.validate(program_state)
+        self.__target.validate(program_state)
+
     def unmangling(self):
         return "%s = %s" % (self.__target.unmangling(), self.__expression.unmangling())
+
+    def constant_folding(self, constants):
+        expr = self.__expression.constant_folding(constants)
+        if expr is not None:
+            self.__expression = expr
+
+    def find_constant(self, constants):
+        if isinstance(self.__target, VariableScalar):
+            if contains(constants, self.__target.value):
+                del constants[self.__target.value]
 
     def __str__(self):
         return "%s = %s" % (self.__target, self.__expression)
@@ -120,13 +148,16 @@ class UnaryOperator(Operator):
         self._value.name_mangling(function_name, mangled_name)
 
     def code(self, code_builder, program_state):
-        if self._value.value_type(program_state) != Type.int:
-            raise ValueError("incorrect expression %s, unary operator \'%s\' can be applied only for int" % (
-                self.unmangling(), self.__get_sign()))
         self._value.code(code_builder, program_state)
 
     def value_type(self, program_state):
         return Type.int
+
+    def validate(self, program_state):
+        if self._value.value_type(program_state) != Type.int:
+            raise ValueError("incorrect expression %s, unary operator \'%s\' can be applied only for int" % (
+                self.unmangling(), self.__get_sign()))
+        self._value.validate(program_state)
 
     def __get_sign(self):
         """
@@ -136,6 +167,13 @@ class UnaryOperator(Operator):
 
     def unmangling(self):
         return "%s%s" % (self.__get_sign(), NameMangling.unmangling(self._value))
+
+    def constant_folding(self, constants):
+        """
+        :type constants: dict
+        :rtype: entity.Scalar.IntScalar
+        """
+        raise NotImplementedError
 
     def __str__(self):
         return "%s%s" % (self.__get_sign(), self._value)
@@ -148,6 +186,9 @@ class UnaryPlus(UnaryOperator):
     def __get_sign(self):
         return "+"
 
+    def constant_folding(self, constants):
+        return self._value.constant_folding(constants)
+
 
 class UnaryMinus(UnaryOperator):
     def __init__(self, value):
@@ -159,6 +200,11 @@ class UnaryMinus(UnaryOperator):
 
     def __get_sign(self):
         return "-"
+
+    def constant_folding(self, constants):
+        res = self._value.constant_folding(constants)
+        if res is not None:
+            return IntScalar(-res.value)
 
 
 class BinaryOperator(Operator):
@@ -176,12 +222,6 @@ class BinaryOperator(Operator):
         self._right.name_mangling(function_name, mangled_name)
 
     def code(self, code_builder, program_state):
-        left_type = self._left.value_type(program_state)
-        right_type = self._right.value_type(program_state)
-        if left_type != right_type:
-            raise ValueError("%s: operator %s cannot be applied for <%s>, <%s>" % (
-                self.unmangling(), self._get_sign(), left_type, right_type))
-
         self._left.code(code_builder, program_state)
         code_builder.add_instruction("push", "eax")
         self._right.code(code_builder, program_state)
@@ -195,6 +235,15 @@ class BinaryOperator(Operator):
     def value_type(self, program_state):
         return Type.int
 
+    def validate(self, program_state):
+        left_type = self._left.value_type(program_state)
+        right_type = self._right.value_type(program_state)
+        if left_type != right_type:
+            raise ValueError("%s: operator %s cannot be applied for <%s>, <%s>" % (
+                self.unmangling(), self._get_sign(), left_type, right_type))
+        self._left.validate(program_state)
+        self._right.validate(program_state)
+
     def _get_sign(self):
         """
         :rtype: str
@@ -203,6 +252,13 @@ class BinaryOperator(Operator):
 
     def unmangling(self):
         return "%s %s %s" % (self._left.unmangling(), self._get_sign(), self._right.unmangling())
+
+    def constant_folding(self, constants):
+        """
+        :type constants: dict
+        :rtype: entity.Scalar.IntScalar | entity.Scalar.CharScalar
+        """
+        raise NotImplementedError
 
     def __str__(self):
         return "%s %s %s" % (self._left, self._get_sign(), self._right)
@@ -229,6 +285,13 @@ class BooleanBinaryOperator(BinaryOperator):
     def _get_sign(self):
         raise NotImplementedError
 
+    def constant_folding(self, constants):
+        """
+        :type constants: dict
+        :rtype: entity.Scalar.BoolScalar
+        """
+        raise NotImplementedError
+
 
 class Plus(BinaryOperator):
     def __init__(self, left, right):
@@ -240,6 +303,12 @@ class Plus(BinaryOperator):
     def _get_sign(self):
         return "+"
 
+    def constant_folding(self, constants):
+        left = self._left.constant_folding(constants)
+        right = self._right.constant_folding(constants)
+        if left is not None and right is not None:
+            return IntScalar(left.value + right.value)
+
 
 class Minus(BinaryOperator):
     def __init__(self, left, right):
@@ -250,6 +319,12 @@ class Minus(BinaryOperator):
 
     def _get_sign(self):
         return "-"
+
+    def constant_folding(self, constants):
+        left = self._left.constant_folding(constants)
+        right = self._right.constant_folding(constants)
+        if left is not None and right is not None:
+            return IntScalar(left.value - right.value)
 
 
 class Multiply(BinaryOperator):
@@ -263,6 +338,12 @@ class Multiply(BinaryOperator):
     def _get_sign(self):
         return "*"
 
+    def constant_folding(self, constants):
+        left = self._left.constant_folding(constants)
+        right = self._right.constant_folding(constants)
+        if left is not None and right is not None:
+            return IntScalar(left.value * right.value)
+
 
 class Divide(BinaryOperator):
     def __init__(self, left, right):
@@ -274,6 +355,12 @@ class Divide(BinaryOperator):
 
     def _get_sign(self):
         return "/"
+
+    def constant_folding(self, constants):
+        left = self._left.constant_folding(constants)
+        right = self._right.constant_folding(constants)
+        if left is not None and right is not None:
+            return IntScalar(left.value / right.value)
 
 
 class Modulo(BinaryOperator):
@@ -288,6 +375,12 @@ class Modulo(BinaryOperator):
     def _get_sign(self):
         return "%"
 
+    def constant_folding(self, constants):
+        left = self._left.constant_folding(constants)
+        right = self._right.constant_folding(constants)
+        if left is not None and right is not None:
+            return IntScalar(left.value % right.value)
+
 
 class Greater(BooleanBinaryOperator):
     def __init__(self, left, right):
@@ -298,6 +391,12 @@ class Greater(BooleanBinaryOperator):
 
     def _get_sign(self):
         return ">"
+
+    def constant_folding(self, constants):
+        left = self._left.constant_folding(constants)
+        right = self._right.constant_folding(constants)
+        if left is not None and right is not None:
+            return BoolScalar(left.value > right.value)
 
 
 class Less(BooleanBinaryOperator):
@@ -310,6 +409,12 @@ class Less(BooleanBinaryOperator):
     def _get_sign(self):
         return "<"
 
+    def constant_folding(self, constants):
+        left = self._left.constant_folding(constants)
+        right = self._right.constant_folding(constants)
+        if left is not None and right is not None:
+            return BoolScalar(left.value < right.value)
+
 
 class Equal(BooleanBinaryOperator):
     def __init__(self, left, right):
@@ -320,6 +425,12 @@ class Equal(BooleanBinaryOperator):
 
     def _get_sign(self):
         return "=="
+
+    def constant_folding(self, constants):
+        left = self._left.constant_folding(constants)
+        right = self._right.constant_folding(constants)
+        if left is not None and right is not None:
+            return BoolScalar(left.value == right.value)
 
 
 class GreaterOrEqual(BooleanBinaryOperator):
@@ -332,6 +443,12 @@ class GreaterOrEqual(BooleanBinaryOperator):
     def _get_sign(self):
         return ">="
 
+    def constant_folding(self, constants):
+        left = self._left.constant_folding(constants)
+        right = self._right.constant_folding(constants)
+        if left is not None and right is not None:
+            return BoolScalar(left.value >= right.value)
+
 
 class LessOrEqual(BooleanBinaryOperator):
     def __init__(self, left, right):
@@ -343,6 +460,12 @@ class LessOrEqual(BooleanBinaryOperator):
     def _get_sign(self):
         return "<="
 
+    def constant_folding(self, constants):
+        left = self._left.constant_folding(constants)
+        right = self._right.constant_folding(constants)
+        if left is not None and right is not None:
+            return BoolScalar(left.value <= right.value)
+
 
 class NotEqual(BooleanBinaryOperator):
     def __init__(self, left, right):
@@ -353,6 +476,12 @@ class NotEqual(BooleanBinaryOperator):
 
     def _get_sign(self):
         return "!="
+
+    def constant_folding(self, constants):
+        left = self._left.constant_folding(constants)
+        right = self._right.constant_folding(constants)
+        if left is not None and right is not None:
+            return BoolScalar(left.value != right.value)
 
 
 class Or(BooleanBinaryOperator):
@@ -368,6 +497,22 @@ class Or(BooleanBinaryOperator):
     def _get_sign(self):
         return "||"
 
+    def validate(self, program_state):
+        super().validate(program_state)
+        left_type = self._left.value_type(program_state)
+        right_type = self._right.value_type(program_state)
+        if left_type != Type.boolean or right_type != Type.boolean:
+            raise ValueError("%s: operator %s cannot be applied for <%s>, <%s>" % (
+                self.unmangling(), self._get_sign(), left_type, right_type))
+
+    def constant_folding(self, constants):
+        left = self._left.constant_folding(constants)
+        right = self._right.constant_folding(constants)
+        if left is not None and right is not None:
+            left_val = False if left.value == 0 else True
+            right_val = False if right.value == 0 else True
+            return BoolScalar(left_val or right_val)
+
 
 class And(BooleanBinaryOperator):
     def __init__(self, left, right):
@@ -381,3 +526,19 @@ class And(BooleanBinaryOperator):
 
     def _get_sign(self):
         return "&&"
+
+    def validate(self, program_state):
+        super().validate(program_state)
+        left_type = self._left.value_type(program_state)
+        right_type = self._right.value_type(program_state)
+        if left_type != Type.boolean or right_type != Type.boolean:
+            raise ValueError("%s: operator %s cannot be applied for <%s>, <%s>" % (
+                self.unmangling(), self._get_sign(), left_type, right_type))
+
+    def constant_folding(self, constants):
+        left = self._left.constant_folding(constants)
+        right = self._right.constant_folding(constants)
+        if left is not None and right is not None:
+            left_val = False if left.value == 0 else True
+            right_val = False if right.value == 0 else True
+            return BoolScalar(left_val and right_val)

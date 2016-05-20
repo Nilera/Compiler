@@ -1,15 +1,12 @@
+import itertools
 import os
 import random
 import subprocess
 import unittest
 from subprocess import Popen, PIPE
 
-import itertools
 
-
-def abstract_test_with_out(input_file, read_line=None):
-    output_filename = "tmp.out"
-    cmd = ["python3", "Compiler.py", "-f", "elf64", "-o", output_filename, input_file]
+def abstract_test_with_out_run(output_filename, cmd, read_line=None):
     p = Popen(cmd)
     p.wait()
     p = Popen(["./%s" % output_filename], stdin=PIPE, stdout=PIPE)
@@ -22,9 +19,20 @@ def abstract_test_with_out(input_file, read_line=None):
     return result
 
 
-def abstract_test_correct_program(input_file, read_line=None):
+def abstract_test_with_out(input_file, read_line=None):
+    results = set()
     output_filename = "tmp.out"
-    cmd = ["python3", "Compiler.py", "-f", "elf64", "-o", output_filename, input_file]
+
+    no_optimization_cmd = ["python3", "Compiler.py", "-f", "elf64", "-o", output_filename, input_file]
+    results.add(abstract_test_with_out_run(output_filename, no_optimization_cmd, read_line))
+    optimization_1_cmd = ["python3", "Compiler.py", "-f", "elf64", "-O", "1", "-o", output_filename, input_file]
+    results.add(abstract_test_with_out_run(output_filename, optimization_1_cmd, read_line))
+
+    if len(results) == 1:
+        return next(iter(results))
+
+
+def abstract_test_correct_program_run(output_filename, cmd, read_line=None):
     p = Popen(cmd)
     p.wait()
     p = Popen(["./%s" % output_filename], stdin=PIPE, stdout=PIPE, stderr=PIPE)
@@ -39,9 +47,19 @@ def abstract_test_correct_program(input_file, read_line=None):
     return not is_incorrect_output(out_result) and not is_incorrect_output(err_result)
 
 
-def abstract_test_incorrect_program(input_file):
+def abstract_test_correct_program(input_file, read_line=None):
+    result = True
     output_filename = "tmp.out"
-    cmd = ["python3", "Compiler.py", "-f", "elf64", "-o", output_filename, input_file]
+
+    no_optimization_cmd = ["python3", "Compiler.py", "-f", "elf64", "-o", output_filename, input_file]
+    result &= abstract_test_correct_program_run(output_filename, no_optimization_cmd, read_line)
+    optimization_1_cmd = ["python3", "Compiler.py", "-f", "elf64", "-O", "1", "-o", output_filename, input_file]
+    result &= abstract_test_correct_program_run(output_filename, optimization_1_cmd, read_line)
+
+    return result
+
+
+def abstract_test_incorrect_program_run(output_filename, cmd):
     p = Popen(cmd, stdout=PIPE, stderr=PIPE)
     out_result = p.stdout.readline().decode("UTF-8")
     err_result = p.stderr.readline().decode("UTF-8")
@@ -56,6 +74,18 @@ def abstract_test_incorrect_program(input_file):
         return False
     except subprocess.CalledProcessError:
         return True
+
+
+def abstract_test_incorrect_program(input_file):
+    result = True
+    output_filename = "tmp.out"
+
+    no_optimization_cmd = ["python3", "Compiler.py", "-f", "elf64", "-o", output_filename, input_file]
+    result &= abstract_test_incorrect_program_run(output_filename, no_optimization_cmd)
+    optimization_1_cmd = ["python3", "Compiler.py", "-f", "elf64", "-O", "1", "-o", output_filename, input_file]
+    result &= abstract_test_incorrect_program_run(output_filename, optimization_1_cmd)
+
+    return result
 
 
 def is_incorrect_output(result):
@@ -171,17 +201,22 @@ class CompilerTest(unittest.TestCase):
         self.assertEqual("false", result)
 
     def test_two_bandits(self):
-        for _ in itertools.repeat(None, 100):
+        for _ in itertools.repeat(None, 10):
             a = random.randint(0, 9)
             b = random.randint(0, 9 - a)
             result = abstract_test_with_out("tests/two_bandits", "%d %d\n" % (a, b))
             self.assertEqual("%d %d" % (max(0, b - 1), max(0, a - 1)), result, "Run two_bandits with %d %d" % (a, b))
 
     def test_about_grisha(self):
-        for _ in itertools.repeat(None, 100):
+        for _ in itertools.repeat(None, 10):
             a = random.randint(0, 11)
             result = abstract_test_with_out("tests/about_grisha", "%d\n" % a)
             self.assertEqual("YES" if (12 - a) * 45 <= 4 * 60 else "NO", result, "Run about_grisha with %d" % a)
+
+    def test_optimization_check(self):
+        a = 23
+        result = abstract_test_with_out("tests/optimization_check", "%d\n" % a)
+        self.assertEqual(str(a), result)
 
 
 if __name__ == '__main__':

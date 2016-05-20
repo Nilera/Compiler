@@ -2,9 +2,8 @@ import hashlib
 from operator import contains
 
 from entity.Array import Array
-from entity.CodeGenerator import CodeGenerator
-from entity.NameMangling import NameMangling, unmangling
-from entity.Returnable import Returnable
+from entity.CodeElement import CodeElement
+from entity.NameMangling import unmangling
 from entity.Type import Type
 
 
@@ -25,11 +24,8 @@ def get_scalar(value):
         return VariableScalar(value)
 
 
-class Scalar(NameMangling, CodeGenerator, Returnable):
+class Scalar(CodeElement):
     def __init__(self, value):
-        """
-        :type value: str
-        """
         super(Scalar, self).__init__()
         self._value = value
 
@@ -49,8 +45,17 @@ class Scalar(NameMangling, CodeGenerator, Returnable):
     def value_type(self, program_state):
         raise NotImplementedError
 
+    def validate(self, program_state):
+        pass
+
     def unmangling(self):
         return self._value
+
+    def constant_folding(self, constants):
+        return self
+
+    def find_constant(self, constants):
+        pass
 
     def __str__(self):
         return str(self._value)
@@ -78,59 +83,41 @@ class VariableScalar(Scalar):
     def unmangling(self):
         return unmangling(self._value)
 
+    def constant_folding(self, constants):
+        if contains(constants, self._value):
+            return constants[self._value]
+
 
 class IntScalar(Scalar):
     def __init__(self, value):
-        if not value.isdigit():
-            raise ValueError("%s is not integer value" % value)
-        super(IntScalar, self).__init__(value)
+        super(IntScalar, self).__init__(int(value))
 
-    def value_type(self, program_state):
+    def value_type(self, program_state=None):
         return Type.int
 
 
 class BoolScalar(Scalar):
     def __init__(self, value):
-        if value != "true" and value != "false":
-            raise ValueError("%s is not boolean value" % value)
-        super(BoolScalar, self).__init__(value)
+        super(BoolScalar, self).__init__(0 if value == "false" else 1)
 
-    def value_type(self, program_state):
+    def value_type(self, program_state=None):
         return Type.boolean
-
-    @property
-    def value(self):
-        """
-        :rtype: int
-        """
-        return 0 if self._value == "false" else 1
 
 
 class CharScalar(Scalar):
     def __init__(self, value):
-        if not value.startswith("\'"):
-            raise ValueError("%s is not char value" % value)
-        super(CharScalar, self).__init__(value)
+        super(CharScalar, self).__init__(ord(value[1]))
 
     def code(self, code_builder, program_state):
         code_builder.add_instruction("xor", "eax", "eax")
         code_builder.add_instruction("mov", "al", self.value)
 
-    def value_type(self, program_state):
+    def value_type(self, program_state=None):
         return Type.char
-
-    @property
-    def value(self):
-        """
-        :rtype: int
-        """
-        return ord(self._value[1])
 
 
 class StringScalar(Scalar):
     def __init__(self, value):
-        if not value.startswith("\""):
-            raise ValueError("%s is not string value" % value)
         super(StringScalar, self).__init__(value)
 
     def code(self, code_builder, program_state):
@@ -139,7 +126,7 @@ class StringScalar(Scalar):
         code_builder.add_instruction("mov", "eax", str_hash)
         code_builder.add_instruction("mov", "ecx", len(self.value) + 1)
 
-    def value_type(self, program_state):
+    def value_type(self, program_state=None):
         return Array(Type.char, 1)
 
     @property

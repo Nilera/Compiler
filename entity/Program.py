@@ -1,4 +1,3 @@
-from entity.CodeGenerator import CodeGenerator
 from entity.Function import Function
 from entity.NameMangling import NameMangling
 from entity.StatementsContainer import StatementsContainer
@@ -23,11 +22,14 @@ class Program(StatementsContainer):
 
     def code(self, code_builder, program_state):
         for statement in self:
-            if isinstance(statement, CodeGenerator):
-                statement.code(code_builder, program_state)
+            statement.code(code_builder, program_state)
 
     def value_type(self, program_state):
         return None
 
     def unmangling(self):
         pass
+
+    def constant_folding(self, constants):
+        self.find_constant(constants)
+        super().constant_folding(constants)

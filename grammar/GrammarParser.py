@@ -1,17 +1,17 @@
 # Generated from D:/Python/Compiler/grammar\Grammar.g4 by ANTLR 4.5.1
 # encoding: utf-8
-from antlr4 import *
 from io import StringIO
 
+from antlr4 import *
 
-from entity.Program import Program
-from entity.Variable import Variable
-from entity.Function import *
-from entity.Expression import *
-from entity.Type import Type
 from entity.Array import *
+from entity.Expression import *
+from entity.Function import *
+from entity.Program import Program
 from entity.Scalar import *
 from entity.Statement import *
+from entity.Variable import Variable
+
 
 def serializedATN():
     with StringIO() as buf:

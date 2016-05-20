@@ -1,8 +1,7 @@
-from entity.CodeGenerator import CodeGenerator
-from entity.NameMangling import NameMangling
+from entity.CodeElement import CodeElement
 
 
-class StatementsContainer(NameMangling, CodeGenerator):
+class StatementsContainer(CodeElement):
     def __init__(self):
         super(StatementsContainer, self).__init__()
         self._statements = []
@@ -10,7 +9,7 @@ class StatementsContainer(NameMangling, CodeGenerator):
     def __getitem__(self, index):
         """
         :type index: int
-        :rtype: entity.CodeGenerator.CodeGenerator | entity.NameMangling.NameMangling
+        :rtype: entity.CodeElement.CodeElement
         """
         return self._statements[index]
 
@@ -19,7 +18,7 @@ class StatementsContainer(NameMangling, CodeGenerator):
 
     def add(self, statement):
         """
-        :type statement: entity.CodeGenerator.CodeGenerator | entity.NameMangling.NameMangling
+        :type statement: entity.CodeElement.CodeElement
         """
         self._statements.append(statement)
 
@@ -39,8 +38,20 @@ class StatementsContainer(NameMangling, CodeGenerator):
     def value_type(self, program_state):
         raise NotImplementedError
 
+    def validate(self, program_state):
+        for statement in self:
+            statement.validate(program_state)
+
     def unmangling(self):
         return NotImplementedError
+
+    def constant_folding(self, constants):
+        for statement in self:
+            statement.constant_folding(constants)
+
+    def find_constant(self, constants):
+        for statement in self:
+            statement.find_constant(constants)
 
     def has_return_statement(self, statements):
         """

@@ -1,5 +1,5 @@
 from Platform import Platform
-from entity.NameMangling import NameMangling, unmangling
+from entity.NameMangling import unmangling
 from entity.StatementsContainer import StatementsContainer
 from entity.Type import Type
 
@@ -29,7 +29,6 @@ class Function(StatementsContainer):
         :type function_state: list
         """
         super(Function, self).__init__()
-        self._validate(return_type, name, params, function_state)
         self._return_type = return_type
         self._name = name
         self._params = [] if params is None else params
@@ -37,19 +36,6 @@ class Function(StatementsContainer):
             from entity.Statement import CallPopFunction
             self.add(CallPopFunction(CallPopFunction.FUNCTION_NAME, [param]))
         self.add_all([] if function_state is None else function_state)
-
-    def _validate(self, return_type, name, params=None, function_state=None):
-        """
-        :type return_type: entity.Type.Type
-        :type name: str
-        :type params: list
-        :type function_state: list
-        :rtype: bool
-        """
-        if return_type is None:
-            raise SyntaxError("return type of function %s couldn't be void" % unmangling(name))
-        if not self.has_return_statement(function_state):
-            raise SyntaxError("function %s: missing return statement" % unmangling(name))
 
     @property
     def name(self):
@@ -79,6 +65,19 @@ class Function(StatementsContainer):
     def value_type(self, program_state=None):
         return self._return_type
 
+    def validate(self, program_state):
+        program_state.set_function_name(self._name)
+        program_state.add_function(self)
+        if self._return_type is None:
+            raise SyntaxError("return type of function %s couldn't be void" % self.unmangling())
+        if not self.has_return_statement(self):
+            raise SyntaxError("function %s: missing return statement" % self.unmangling())
+        for pop_i in range(len(self._params)):
+            self[pop_i].validate(program_state)
+        for statement_i in range(len(self._params), len(self)):
+            self[statement_i].validate(program_state)
+        program_state.set_function_name("")
+
     def unmangling(self):
         return unmangling(self._name)
 
@@ -92,16 +91,6 @@ class MainFunction(Function):
 
     def __init__(self, return_type, name, params=None, function_state=None):
         super(MainFunction, self).__init__(return_type, name, params, function_state)
-
-    def _validate(self, return_type, name, params=None, function_state=None):
-        if return_type is not None:
-            raise SyntaxError(
-                "function main must return a value of type void, please define the main function as:\nvoid main()")
-        if params is not None:
-            raise SyntaxError("function main not found, please define the main function as:\n void main()")
-        has_return_statement = self.has_return_statement(function_state)
-        if has_return_statement is None or has_return_statement:
-            raise SyntaxError("function %s shouldn't have return statement" % name)
 
     def code(self, code_builder, program_state):
         program_state.set_function_name(self._name)
@@ -122,6 +111,20 @@ class MainFunction(Function):
     def value_type(self, program_state=None):
         return None
 
+    def validate(self, program_state):
+        program_state.set_function_name(self._name)
+        if self._return_type is not None:
+            raise SyntaxError(
+                "function main must return a value of type void, please define the main function as:\nvoid main()")
+        if self._params is not None and len(self._params) != 0:
+            raise SyntaxError("function main not found, please define the main function as:\n void main()")
+        has_return_statement = self.has_return_statement(self)
+        if has_return_statement is None or has_return_statement:
+            raise SyntaxError("function %s shouldn't have return statement" % self.name)
+        for statement in self:
+            statement.validate(program_state)
+        program_state.set_function_name("")
+
 
 class ReadFunction(Function):
     FUNCTION_NAME = "read"
@@ -129,9 +132,6 @@ class ReadFunction(Function):
     def __init__(self, return_type, name, params, function_state=None):
         super(ReadFunction, self).__init__(return_type, name, params, function_state)
         self.__global_function_number = None
-
-    def _validate(self, return_type, name, params=None, function_state=None):
-        pass
 
     def code(self, code_builder, program_state):
         program_state.set_function_name(self._name)
@@ -167,6 +167,14 @@ class ReadFunction(Function):
     def value_type(self, program_state=None):
         return None
 
+    def validate(self, program_state):
+        program_state.set_function_name(self._name)
+        from entity.Array import ArrayGetter
+        from entity.Array import Array
+        if isinstance(self._params[0].value_type(program_state), (Array, ArrayGetter)):
+            self._params[0].validate(program_state)
+        program_state.set_function_name("")
+
 
 class WriteFunction(Function):
     FUNCTION_NAME = "write"
@@ -174,9 +182,6 @@ class WriteFunction(Function):
     def __init__(self, return_type, name, params, function_state=None):
         super(WriteFunction, self).__init__(return_type, name, params, function_state)
         self.__global_function_number = None
-
-    def _validate(self, return_type, name, params=None, function_state=None):
-        pass
 
     def code(self, code_builder, program_state):
         program_state.set_function_name(self._name)
@@ -207,15 +212,17 @@ class WriteFunction(Function):
     def value_type(self, program_state=None):
         return None
 
+    def validate(self, program_state):
+        program_state.set_function_name(self._name)
+        self._params[0].validate(program_state)
+        program_state.set_function_name("")
+
 
 class ArrayCopyFunction(Function):
     FUNCTION_NAME = "arraycopy"
 
     def __init__(self, return_type, name, params, function_state=None):
         super(ArrayCopyFunction, self).__init__(return_type, name, params, function_state)
-
-    def _validate(self, return_type, name, params=None, function_state=None):
-        pass
 
     def code(self, code_builder, program_state):
         src_value_type = self._params[0]
@@ -234,6 +241,9 @@ class ArrayCopyFunction(Function):
     def value_type(self, program_state=None):
         return None
 
+    def validate(self, program_state):
+        pass
+
 
 class StrcatFunction(Function):
     """
@@ -244,14 +254,14 @@ class StrcatFunction(Function):
     def __init__(self, return_type, name, params, function_state=None):
         super(StrcatFunction, self).__init__(return_type, name, params, function_state)
 
-    def _validate(self, return_type, name, params=None, function_state=None):
-        pass
-
     def code(self, code_builder, program_state):
         pass
 
     def value_type(self, program_state=None):
         return None
+
+    def validate(self, program_state):
+        pass
 
 
 class LengthFunction(Function):
@@ -259,9 +269,6 @@ class LengthFunction(Function):
 
     def __init__(self, return_type, name, params, function_state=None):
         super(LengthFunction, self).__init__(return_type, name, params, function_state)
-
-    def _validate(self, return_type, name, params=None, function_state=None):
-        pass
 
     def code(self, code_builder, program_state):
         src = self._params[0].value_type(program_state)
@@ -282,3 +289,6 @@ class LengthFunction(Function):
 
     def value_type(self, program_state=None):
         return Type.int
+
+    def validate(self, program_state):
+        self._params[0].validate(program_state)

@@ -1,16 +1,7 @@
 # Generated from D:/Python/Compiler/grammar\Grammar.g4 by ANTLR 4.5.1
-from antlr4 import *
 from io import StringIO
 
-
-from entity.Program import Program
-from entity.Variable import Variable
-from entity.Function import *
-from entity.Expression import *
-from entity.Type import Type
-from entity.Array import *
-from entity.Scalar import *
-from entity.Statement import *
+from antlr4 import *
 
 
 def serializedATN():

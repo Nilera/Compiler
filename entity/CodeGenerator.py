@@ -6,7 +6,6 @@ class CodeGenerator(Returnable):
         """
         :type code_builder: CodeBuilder.CodeBuilder
         :type program_state: ProgramState.ProgramState
-        :rtype: None
         """
         raise NotImplementedError
 
@@ -14,5 +13,11 @@ class CodeGenerator(Returnable):
         """
         :type program_state: ProgramState.ProgramState
         :rtype: entity.Type.Type | entity.Array.Array
+        """
+        raise NotImplementedError
+
+    def validate(self, program_state):
+        """
+        :type program_state: ProgramState.ProgramState
         """
         raise NotImplementedError

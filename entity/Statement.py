@@ -1,10 +1,10 @@
 from operator import contains
 
 from entity.Array import Array
-from entity.CodeGenerator import CodeGenerator
+from entity.CodeElement import CodeElement
 from entity.Expression import Plus
 from entity.Function import ReadFunction, WriteFunction, MainFunction, ArrayCopyFunction, LengthFunction, StrcatFunction
-from entity.NameMangling import NameMangling, unmangling
+from entity.NameMangling import unmangling
 from entity.Scalar import VariableScalar, IntScalar
 from entity.StatementsContainer import StatementsContainer
 from entity.Type import Type
@@ -28,10 +28,7 @@ class WhileStatement(StatementsContainer):
         label = "%s_while_%d" % (program_state.function_name, program_state.get_while_number())
         exit_label = "%s_exit" % label
         code_builder.add_label(label)
-        if self.__condition.value_type(program_state) == Type.boolean:
-            self.__condition.code(code_builder, program_state)
-        else:
-            raise SyntaxError("while condition should be boolean value or boolean expression")
+        self.__condition.code(code_builder, program_state)
         code_builder.add_instruction("cmp", "eax", "0")
         code_builder.add_instruction("je", exit_label)
         for statement in self:
@@ -42,8 +39,21 @@ class WhileStatement(StatementsContainer):
     def value_type(self, program_state):
         return None
 
+    def validate(self, program_state):
+        super().validate(program_state)
+        if self.__condition.value_type(program_state) == Type.boolean:
+            self.__condition.validate(program_state)
+        else:
+            raise SyntaxError("while condition should be boolean value or boolean expression")
+
     def unmangling(self):
         return ""
+
+    def constant_folding(self, constants):
+        super().constant_folding(constants)
+        cond = self.__condition.constant_folding(constants)
+        if cond is not None:
+            self.__condition = cond
 
     def __str__(self):
         return "while %s \n" % str(self.__condition) + super().__str__()
@@ -74,10 +84,7 @@ class IfStatement(StatementsContainer):
     def code(self, code_builder, program_state):
         label = "%s_if_%d" % (program_state.function_name, program_state.get_if_number())
         exit_label = "%s_exit" % label
-        if self.__condition.value_type(program_state) == Type.boolean:
-            self.__condition.code(code_builder, program_state)
-        else:
-            raise SyntaxError("while condition should be boolean value or boolean expression")
+        self.__condition.code(code_builder, program_state)
         code_builder.add_instruction("cmp", "eax", "1")
         code_builder.add_instruction("je", label)
         if self.__else_statement is not None:
@@ -91,8 +98,23 @@ class IfStatement(StatementsContainer):
     def value_type(self, program_state):
         return None
 
+    def validate(self, program_state):
+        super().validate(program_state)
+        if self.__condition.value_type(program_state) == Type.boolean:
+            self.__condition.validate(program_state)
+        else:
+            raise SyntaxError("if condition should be boolean value or boolean expression")
+
     def unmangling(self):
         return ""
+
+    def constant_folding(self, constants):
+        super().constant_folding(constants)
+        cond = self.__condition.constant_folding(constants)
+        if cond is not None:
+            self.__condition = cond
+        if self.__else_statement is not None:
+            self.__else_statement.constant_folding(constants)
 
     def __str__(self):
         else_statement = "" if self.__else_statement is None else str(self.__else_statement)
@@ -121,10 +143,10 @@ class ElseStatement(StatementsContainer):
         return "else\n" + "\n".join("\t%d  %s" % (i, str(self[i])) for i in range(len(self)))
 
 
-class ReturnStatement(NameMangling, CodeGenerator):
+class ReturnStatement(CodeElement):
     def __init__(self, expression):
         """
-        :type expression: entity.NameMangling.NameMangling | entity.CodeGenerator.CodeGenerator
+        :type expression: entity.CodeElement.CodeElement
         """
         self.__expression = expression
 
@@ -132,8 +154,6 @@ class ReturnStatement(NameMangling, CodeGenerator):
         self.__expression.name_mangling(function_name, mangled_name)
 
     def code(self, code_builder, program_state):
-        if isinstance(self.__expression.value_type(program_state), Array):
-            raise SyntaxError("function couldn't return array")
         self.__expression.code(code_builder, program_state)
         code_builder.add_instruction("push", "eax")
         code_builder.add_instruction("add", "esp", "4")
@@ -142,8 +162,20 @@ class ReturnStatement(NameMangling, CodeGenerator):
     def value_type(self, program_state):
         return None
 
+    def validate(self, program_state):
+        if isinstance(self.__expression.value_type(program_state), Array):
+            raise SyntaxError("function couldn't return array")
+
     def unmangling(self):
         return ""
+
+    def constant_folding(self, constants):
+        res = self.__expression.constant_folding(constants)
+        if res is not None:
+            self.__expression = res
+
+    def find_constant(self, constants):
+        pass
 
     def __str__(self):
         return "return %s" % str(self.__expression)
@@ -166,7 +198,7 @@ def get_call_function_statement(function_name, args=None):
         return CallFunctionStatement(function_name, args)
 
 
-class CallFunctionStatement(NameMangling, CodeGenerator):
+class CallFunctionStatement(CodeElement):
     def __init__(self, function_name, args=None):
         """
         :type function_name: str
@@ -184,7 +216,6 @@ class CallFunctionStatement(NameMangling, CodeGenerator):
             self._args[i].name_mangling(function_name, mangled_name)
 
     def code(self, code_builder, program_state):
-        self._code_validation(program_state)
         for arg in reversed(self._args):
             arg.code(code_builder, program_state)
             code_builder.add_instruction("push", "eax")
@@ -193,7 +224,12 @@ class CallFunctionStatement(NameMangling, CodeGenerator):
         code_builder.add_instruction("pop", "eax")
         code_builder.add_instruction("add", "esp", str(4 * (len(self._args) + 1)))
 
-    def _code_validation(self, program_state):
+    def value_type(self, program_state):
+        if not program_state.contains_function(self._function_name):
+            raise ValueError("no function \"%s\" in scope" % self.unmangling())
+        return program_state.get_function(self._function_name).value_type()
+
+    def validate(self, program_state):
         """
         :type program_state: ProgramState.ProgramState
         :rtype: bool
@@ -208,6 +244,8 @@ class CallFunctionStatement(NameMangling, CodeGenerator):
                     "no arguments" if len(params) == 0 else ", ".join(str(x.value_type(program_state)) for x in params),
                     "no arguments" if len(params) == 0 else ", ".join(
                         str(x.value_type(program_state)) for x in self._args)))
+        for arg in reversed(self._args):
+            arg.validate(program_state)
 
     def __is_valid_params(self, params, program_state):
         """
@@ -222,14 +260,18 @@ class CallFunctionStatement(NameMangling, CodeGenerator):
                 return False
         return True
 
-    def value_type(self, program_state):
-        if not program_state.contains_function(self._function_name):
-            raise ValueError("no function \"%s\" in scope" % self.unmangling())
-        return program_state.get_function(self._function_name).value_type()
-
     def unmangling(self):
         args = "" if self._args is None else ", ".join(arg.unmangling() for arg in self._args)
         return "%s(%s)" % (unmangling(self._function_name), args)
+
+    def constant_folding(self, constants):
+        for i in range(len(self._args)):
+            arg = self._args[i].constant_folding(constants)
+            if arg is not None:
+                self._args[i] = arg
+
+    def find_constant(self, constants):
+        pass
 
     def __str__(self):
         args = "" if self._args is None else ", ".join(str(arg) for arg in self._args)
@@ -240,14 +282,7 @@ class CallReadFunction(CallFunctionStatement):
     def __init__(self, function_name, args):
         super(CallReadFunction, self).__init__(function_name, args)
 
-    def value_type(self, program_state):
-        return None
-
     def code(self, code_builder, program_state):
-        if len(self._args) != 1:
-            raise SyntaxError(
-                "actual and formal argument lists of function read is differ in length\nrequired: 1\nfound: %d" % len(
-                    self._args))
         arr_param = self._args[0].value_type(program_state)
         if not isinstance(self._args[0], VariableScalar) and not (
                     isinstance(arr_param, Array) and arr_param.value_type == Type.char):
@@ -256,12 +291,37 @@ class CallReadFunction(CallFunctionStatement):
         code_builder.add_instruction("call", read_fun.get_label(program_state))
         code_builder.add_global_function(read_fun)
 
+    def value_type(self, program_state):
+        return None
+
+    def validate(self, program_state):
+        if len(self._args) != 1:
+            raise SyntaxError(
+                "actual and formal argument lists of function read is differ in length\nrequired: 1\nfound: %d" % len(
+                    self._args))
+
+    def constant_folding(self, constants):
+        pass
+
+    def find_constant(self, constants):
+        var_name = self._args[0].value
+        if contains(constants, var_name):
+            del constants[var_name]
+
 
 class CallWriteFunction(CallFunctionStatement):
     def __init__(self, function_name, args):
         super(CallWriteFunction, self).__init__(function_name, args)
 
     def code(self, code_builder, program_state):
+        write_fun = WriteFunction(None, self._function_name, self._args)
+        code_builder.add_instruction("call", write_fun.get_label(program_state))
+        code_builder.add_global_function(write_fun)
+
+    def value_type(self, program_state):
+        return None
+
+    def validate(self, program_state):
         if len(self._args) != 1:
             raise SyntaxError(
                 "actual and formal argument lists of function write is differ in length\nrequired: 1\nfound: %d" % len(
@@ -269,12 +329,9 @@ class CallWriteFunction(CallFunctionStatement):
         if not isinstance(self._args[0].value_type(program_state), (Type, Array)):
             raise SyntaxError(
                 "function 'write' cannot be applied to given arguments\nrequired: int, boolean, char or char[]")
-        write_fun = WriteFunction(None, self._function_name, self._args)
-        code_builder.add_instruction("call", write_fun.get_label(program_state))
-        code_builder.add_global_function(write_fun)
 
-    def value_type(self, program_state):
-        return None
+    def find_constant(self, constants):
+        pass
 
 
 class CallPopFunction(CallFunctionStatement):
@@ -294,13 +351,18 @@ class CallPopFunction(CallFunctionStatement):
     def value_type(self, program_state):
         return None
 
+    def validate(self, program_state):
+        self._args[0].validate(program_state)
+
+    def constant_folding(self, constants):
+        pass
+
 
 class CallArrayCopyFunction(CallFunctionStatement):
     def __init__(self, function_name, args):
         super(CallArrayCopyFunction, self).__init__(function_name, args)
 
     def code(self, code_builder, program_state):
-        self._code_validation(program_state)
         src = self._args[0].value_type(program_state)
         dist = self._args[2].value_type(program_state)
 
@@ -328,7 +390,7 @@ class CallArrayCopyFunction(CallFunctionStatement):
         arr_copy_function = ArrayCopyFunction(None, self._function_name, [src.value_type])
         arr_copy_function.code(code_builder, program_state)
 
-    def _code_validation(self, program_state):
+    def validate(self, program_state):
         if len(self._args) != 5:
             raise SyntaxError(
                 "actual and formal argument lists of function %s is differ in length\nrequired: 5\nfound: %d" % (len(
@@ -344,9 +406,14 @@ class CallArrayCopyFunction(CallFunctionStatement):
                 "function 'arraycopy' cannot be applied to given arguments\nrequired: array[] int array[] int int")
         if src.value_type != dist.value_type:
             raise SyntaxError("%s src and dist array type is different" % str(self))
+        for arg in reversed(self._args):
+            arg.validate(program_state)
 
     def value_type(self, program_state):
         return None
+
+    def constant_folding(self, constants):
+        pass
 
 
 class CallStrcatFunction(CallFunctionStatement):
@@ -354,7 +421,6 @@ class CallStrcatFunction(CallFunctionStatement):
         super(CallStrcatFunction, self).__init__(function_name, args)
 
     def code(self, code_builder, program_state):
-        self._code_validation(program_state)
         dist = self._args[0]
         src = self._args[1]
         dist_length = LengthFunction(Type.int, LengthFunction.FUNCTION_NAME, [dist])
@@ -364,7 +430,7 @@ class CallStrcatFunction(CallFunctionStatement):
                                                 Plus(src_length, IntScalar("1"))])
         call_arraycopy.code(code_builder, program_state)
 
-    def _code_validation(self, program_state):
+    def validate(self, program_state):
         if len(self._args) != 2:
             raise SyntaxError(
                 "actual and formal argument lists of function %s is differ in length\nrequired: 2\nfound: %d" % (len(
@@ -375,9 +441,14 @@ class CallStrcatFunction(CallFunctionStatement):
                 not isinstance(dist, Array) or dist.dimension != 1 or dist.value_type != Type.char:
             raise SyntaxError(
                 "function 'strcat' cannot be applied to given arguments\nrequired: char[] char[]")
+        for arg in reversed(self._args):
+            arg.validate(program_state)
 
     def value_type(self, program_state):
         return None
+
+    def constant_folding(self, constants):
+        pass
 
 
 class CallLengthFunction(CallFunctionStatement):
@@ -385,11 +456,10 @@ class CallLengthFunction(CallFunctionStatement):
         super(CallLengthFunction, self).__init__(function_name, args)
 
     def code(self, code_builder, program_state):
-        self._code_validation(program_state)
         length_function = LengthFunction(Type.int, self._function_name, self._args)
         length_function.code(code_builder, program_state)
 
-    def _code_validation(self, program_state):
+    def validate(self, program_state):
         if len(self._args) != 1:
             raise SyntaxError(
                 "actual and formal argument lists of function %s is differ in length\nrequired: 1\nfound: %d" % (len(
@@ -397,6 +467,11 @@ class CallLengthFunction(CallFunctionStatement):
         if not isinstance(self._args[0].value_type(program_state), Array):
             raise SyntaxError(
                 "function 'length' cannot be applied to given arguments\nrequired: array[]")
+        for arg in reversed(self._args):
+            arg.validate(program_state)
 
     def value_type(self, program_state):
         return Type.int
+
+    def constant_folding(self, constants):
+        return None
