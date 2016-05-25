@@ -228,6 +228,11 @@ class CompilerTest(unittest.TestCase):
         result = abstract_test_incorrect_program("tests/local_var_with_same_name")
         self.assertEqual(True, result)
 
+    def test_constant_folding(self):
+        a = 5
+        result = abstract_test_with_out("tests/constant_folding", "%d\n" % a)
+        self.assertEqual("553544", result)
+
 
 if __name__ == '__main__':
     unittest.main()
