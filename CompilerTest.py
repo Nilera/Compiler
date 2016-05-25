@@ -224,6 +224,10 @@ class CompilerTest(unittest.TestCase):
         result = abstract_test_with_out("tests/optimization_check", "%d\n" % a)
         self.assertEqual(str(a), result)
 
+    def test_local_var_with_same_name(self):
+        result = abstract_test_incorrect_program("tests/local_var_with_same_name")
+        self.assertEqual(True, result)
+
 
 if __name__ == '__main__':
     unittest.main()

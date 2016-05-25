@@ -62,6 +62,8 @@ class Variable(CodeElement):
         return self.__value_type
 
     def validate(self, program_state):
+        if program_state.contains_variable(self.name):
+            raise SyntaxError("%s: variable is already declare" % self.unmangling())
         program_state.add_variable(self)
         if self.expression is not None:
             expr_type = self.__expression.value_type(program_state)
