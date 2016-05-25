@@ -45,13 +45,13 @@ class StatementsContainer(CodeElement):
     def unmangling(self):
         return NotImplementedError
 
-    def constant_folding(self, constants):
+    def constant_folding(self, cf_state):
+        """
+        Optimizes code using constant folding and constant propagation.
+        :type cf_state: util.ConstantFoldingState.ConstantFoldingState
+        """
         for statement in self:
-            statement.constant_folding(constants)
-
-    def find_constant(self, constants):
-        for statement in self:
-            statement.find_constant(constants)
+            statement.constant_folding(cf_state)
 
     def has_return_statement(self, statements):
         """

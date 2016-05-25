@@ -81,6 +81,14 @@ class Function(StatementsContainer):
     def unmangling(self):
         return unmangling(self._name)
 
+    def constant_folding(self, cf_state):
+        """
+        Optimizes code using constant folding and constant propagation.
+        :type cf_state: util.ConstantFoldingState.ConstantFoldingState
+        """
+        cf_state.add_function(self.name, self)
+        super().constant_folding(cf_state)
+
     def __str__(self):
         params = "" if self._params is None else ", ".join(var.name for var in self._params)
         return "fun %s(%s) -> %s\n" % (self._name, str(params), str(self._return_type)) + super().__str__()

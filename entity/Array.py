@@ -110,10 +110,7 @@ class ArrayCreator(CodeElement):
     def unmangling(self):
         return "new %s%s" % (self.__value_type, "[" + "][".join(str(x) for x in self.__dimensions_sizes) + "]")
 
-    def constant_folding(self, constants):
-        pass
-
-    def find_constant(self, constants):
+    def constant_folding(self, cf_state):
         pass
 
     def __str__(self):
@@ -242,10 +239,7 @@ class ArrayGetter(CodeElement):
     def unmangling(self):
         return "%s%s" % (unmangling(self.value), "[" + "][".join(str(x) for x in self.__dimensions_sizes) + "]")
 
-    def constant_folding(self, constants):
-        pass
-
-    def find_constant(self, constants):
+    def constant_folding(self, cf_state):
         pass
 
     def __str__(self):

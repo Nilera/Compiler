@@ -51,11 +51,13 @@ class Scalar(CodeElement):
     def unmangling(self):
         return self._value
 
-    def constant_folding(self, constants):
+    def constant_folding(self, cf_state):
+        """
+        Optimizes code using constant folding and constant propagation.
+        :type cf_state: util.ConstantFoldingState.ConstantFoldingState
+        :rtype: entity.entity.Scalar
+        """
         return self
-
-    def find_constant(self, constants):
-        pass
 
     def __str__(self):
         return str(self._value)
@@ -83,9 +85,14 @@ class VariableScalar(Scalar):
     def unmangling(self):
         return unmangling(self._value)
 
-    def constant_folding(self, constants):
-        if contains(constants, self._value):
-            return constants[self._value]
+    def constant_folding(self, cf_state):
+        """
+        Optimizes code using constant folding and constant propagation.
+        :type cf_state: util.ConstantFoldingState.ConstantFoldingState
+        :rtype: entity.entity.Scalar
+        """
+        if cf_state.contains_variable(self._value):
+            return cf_state.get_variable(self._value)
 
 
 class IntScalar(Scalar):

@@ -1,5 +1,3 @@
-from operator import contains
-
 from entity.Array import Array
 from entity.CodeElement import CodeElement
 from entity.Expression import Operator
@@ -75,22 +73,22 @@ class Variable(CodeElement):
     def unmangling(self):
         return "%s %s = %s" % (str(self.__value_type), unmangling(self.__name), self.__expression.unmangling())
 
-    def constant_folding(self, constants):
+    def constant_folding(self, cf_state):
+        """
+        Optimizes code using constant folding and constant propagation.
+        :type cf_state: util.ConstantFoldingState.ConstantFoldingState
+        """
         if isinstance(self.__expression, VariableScalar):
-            if contains(constants, self.__expression.value):
-                self.__expression = constants[self.__expression.value]
+            if cf_state.contains_variable(self.__expression.value):
+                self.__expression = cf_state.get_variable(self.__expression.value)
         elif isinstance(self.__expression, Operator):
-            res = self.__expression.constant_folding(constants)
+            res = self.__expression.constant_folding(cf_state)
             if res is not None:
                 self.__expression = res
         elif not isinstance(self.__expression, Scalar):
             return None
-        if contains(constants, self.__name):
-            constants[self.__name] = self.__expression
-
-    def find_constant(self, constants):
         if isinstance(self.__expression, (Scalar, Operator)):
-            constants[self.__name] = self.__expression
+            cf_state.add_variable(self.__name, self.__expression)
 
     def __str__(self):
         assign = "" if self.__expression is None else " = %s" % str(self.__expression)

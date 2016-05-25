@@ -1,5 +1,3 @@
-from operator import contains
-
 from entity.Array import ArrayGetter, ArrayCreator, Array
 from entity.CodeElement import CodeElement
 from entity.Function import ArrayCopyFunction
@@ -65,11 +63,12 @@ class Operator(CodeElement):
     def unmangling(self):
         raise NotImplementedError
 
-    def constant_folding(self, constants):
+    def constant_folding(self, cf_state):
+        """
+        Optimizes code using constant folding and constant propagation.
+        :type cf_state: util.ConstantFoldingState.ConstantFoldingState
+        """
         raise NotImplementedError
-
-    def find_constant(self, constants):
-        pass
 
 
 class AssignmentOperator(Operator):
@@ -81,6 +80,10 @@ class AssignmentOperator(Operator):
         super(AssignmentOperator, self).__init__()
         self.__target = target
         self.__expression = expression
+
+    @property
+    def target(self):
+        return self.__target
 
     def name_mangling(self, function_name, mangled_name):
         self.__target.name_mangling(function_name, mangled_name)
@@ -122,15 +125,17 @@ class AssignmentOperator(Operator):
     def unmangling(self):
         return "%s = %s" % (self.__target.unmangling(), self.__expression.unmangling())
 
-    def constant_folding(self, constants):
-        expr = self.__expression.constant_folding(constants)
+    def constant_folding(self, cf_state):
+        """
+        Optimizes code using constant folding and constant propagation.
+        :type cf_state: util.ConstantFoldingState.ConstantFoldingState
+        """
+        if isinstance(self.__target, VariableScalar):
+            if cf_state.contains_variable(self.__target.value):
+                cf_state.remove_variable(self.__target.value)
+        expr = self.__expression.constant_folding(cf_state)
         if expr is not None:
             self.__expression = expr
-
-    def find_constant(self, constants):
-        if isinstance(self.__target, VariableScalar):
-            if contains(constants, self.__target.value):
-                del constants[self.__target.value]
 
     def __str__(self):
         return "%s = %s" % (self.__target, self.__expression)
@@ -168,9 +173,10 @@ class UnaryOperator(Operator):
     def unmangling(self):
         return "%s%s" % (self.__get_sign(), NameMangling.unmangling(self._value))
 
-    def constant_folding(self, constants):
+    def constant_folding(self, cf_state):
         """
-        :type constants: dict
+        Optimizes code using constant folding and constant propagation.
+        :type cf_state: util.ConstantFoldingState.ConstantFoldingState
         :rtype: entity.Scalar.IntScalar
         """
         raise NotImplementedError
@@ -186,8 +192,13 @@ class UnaryPlus(UnaryOperator):
     def __get_sign(self):
         return "+"
 
-    def constant_folding(self, constants):
-        return self._value.constant_folding(constants)
+    def constant_folding(self, cf_state):
+        """
+        Optimizes code using constant folding and constant propagation.
+        :type cf_state: util.ConstantFoldingState.ConstantFoldingState
+        :rtype: entity.Scalar.IntScalar
+        """
+        return self._value.constant_folding(cf_state)
 
 
 class UnaryMinus(UnaryOperator):
@@ -201,8 +212,13 @@ class UnaryMinus(UnaryOperator):
     def __get_sign(self):
         return "-"
 
-    def constant_folding(self, constants):
-        res = self._value.constant_folding(constants)
+    def constant_folding(self, cf_state):
+        """
+        Optimizes code using constant folding and constant propagation.
+        :type cf_state: util.ConstantFoldingState.ConstantFoldingState
+        :rtype: entity.Scalar.IntScalar
+        """
+        res = self._value.constant_folding(cf_state)
         if res is not None:
             return IntScalar(-res.value)
 
@@ -253,9 +269,10 @@ class BinaryOperator(Operator):
     def unmangling(self):
         return "%s %s %s" % (self._left.unmangling(), self._get_sign(), self._right.unmangling())
 
-    def constant_folding(self, constants):
+    def constant_folding(self, cf_state):
         """
-        :type constants: dict
+        Optimizes code using constant folding and constant propagation.
+        :type cf_state: util.ConstantFoldingState.ConstantFoldingState
         :rtype: entity.Scalar.IntScalar | entity.Scalar.CharScalar
         """
         raise NotImplementedError
@@ -285,9 +302,10 @@ class BooleanBinaryOperator(BinaryOperator):
     def _get_sign(self):
         raise NotImplementedError
 
-    def constant_folding(self, constants):
+    def constant_folding(self, cf_state):
         """
-        :type constants: dict
+        Optimizes code using constant folding and constant propagation.
+        :type cf_state: util.ConstantFoldingState.ConstantFoldingState
         :rtype: entity.Scalar.BoolScalar
         """
         raise NotImplementedError
@@ -303,9 +321,14 @@ class Plus(BinaryOperator):
     def _get_sign(self):
         return "+"
 
-    def constant_folding(self, constants):
-        left = self._left.constant_folding(constants)
-        right = self._right.constant_folding(constants)
+    def constant_folding(self, cf_state):
+        """
+        Optimizes code using constant folding and constant propagation.
+        :type cf_state: util.ConstantFoldingState.ConstantFoldingState
+        :rtype: entity.Scalar.IntScalar | entity.Scalar.CharScalar
+        """
+        left = self._left.constant_folding(cf_state)
+        right = self._right.constant_folding(cf_state)
         if left is not None and right is not None:
             return IntScalar(left.value + right.value)
 
@@ -320,9 +343,14 @@ class Minus(BinaryOperator):
     def _get_sign(self):
         return "-"
 
-    def constant_folding(self, constants):
-        left = self._left.constant_folding(constants)
-        right = self._right.constant_folding(constants)
+    def constant_folding(self, cf_state):
+        """
+        Optimizes code using constant folding and constant propagation.
+        :type cf_state: util.ConstantFoldingState.ConstantFoldingState
+        :rtype: entity.Scalar.IntScalar | entity.Scalar.CharScalar
+        """
+        left = self._left.constant_folding(cf_state)
+        right = self._right.constant_folding(cf_state)
         if left is not None and right is not None:
             return IntScalar(left.value - right.value)
 
@@ -338,9 +366,14 @@ class Multiply(BinaryOperator):
     def _get_sign(self):
         return "*"
 
-    def constant_folding(self, constants):
-        left = self._left.constant_folding(constants)
-        right = self._right.constant_folding(constants)
+    def constant_folding(self, cf_state):
+        """
+        Optimizes code using constant folding and constant propagation.
+        :type cf_state: util.ConstantFoldingState.ConstantFoldingState
+        :rtype: entity.Scalar.IntScalar | entity.Scalar.CharScalar
+        """
+        left = self._left.constant_folding(cf_state)
+        right = self._right.constant_folding(cf_state)
         if left is not None and right is not None:
             return IntScalar(left.value * right.value)
 
@@ -356,9 +389,14 @@ class Divide(BinaryOperator):
     def _get_sign(self):
         return "/"
 
-    def constant_folding(self, constants):
-        left = self._left.constant_folding(constants)
-        right = self._right.constant_folding(constants)
+    def constant_folding(self, cf_state):
+        """
+        Optimizes code using constant folding and constant propagation.
+        :type cf_state: util.ConstantFoldingState.ConstantFoldingState
+        :rtype: entity.Scalar.IntScalar | entity.Scalar.CharScalar
+        """
+        left = self._left.constant_folding(cf_state)
+        right = self._right.constant_folding(cf_state)
         if left is not None and right is not None:
             return IntScalar(left.value / right.value)
 
@@ -375,9 +413,14 @@ class Modulo(BinaryOperator):
     def _get_sign(self):
         return "%"
 
-    def constant_folding(self, constants):
-        left = self._left.constant_folding(constants)
-        right = self._right.constant_folding(constants)
+    def constant_folding(self, cf_state):
+        """
+        Optimizes code using constant folding and constant propagation.
+        :type cf_state: util.ConstantFoldingState.ConstantFoldingState
+        :rtype: entity.Scalar.IntScalar | entity.Scalar.CharScalar
+        """
+        left = self._left.constant_folding(cf_state)
+        right = self._right.constant_folding(cf_state)
         if left is not None and right is not None:
             return IntScalar(left.value % right.value)
 
@@ -392,9 +435,14 @@ class Greater(BooleanBinaryOperator):
     def _get_sign(self):
         return ">"
 
-    def constant_folding(self, constants):
-        left = self._left.constant_folding(constants)
-        right = self._right.constant_folding(constants)
+    def constant_folding(self, cf_state):
+        """
+        Optimizes code using constant folding and constant propagation.
+        :type cf_state: util.ConstantFoldingState.ConstantFoldingState
+        :rtype: entity.Scalar.BoolScalar
+        """
+        left = self._left.constant_folding(cf_state)
+        right = self._right.constant_folding(cf_state)
         if left is not None and right is not None:
             return BoolScalar(left.value > right.value)
 
@@ -409,9 +457,14 @@ class Less(BooleanBinaryOperator):
     def _get_sign(self):
         return "<"
 
-    def constant_folding(self, constants):
-        left = self._left.constant_folding(constants)
-        right = self._right.constant_folding(constants)
+    def constant_folding(self, cf_state):
+        """
+        Optimizes code using constant folding and constant propagation.
+        :type cf_state: util.ConstantFoldingState.ConstantFoldingState
+        :rtype: entity.Scalar.BoolScalar
+        """
+        left = self._left.constant_folding(cf_state)
+        right = self._right.constant_folding(cf_state)
         if left is not None and right is not None:
             return BoolScalar(left.value < right.value)
 
@@ -426,9 +479,14 @@ class Equal(BooleanBinaryOperator):
     def _get_sign(self):
         return "=="
 
-    def constant_folding(self, constants):
-        left = self._left.constant_folding(constants)
-        right = self._right.constant_folding(constants)
+    def constant_folding(self, cf_state):
+        """
+        Optimizes code using constant folding and constant propagation.
+        :type cf_state: util.ConstantFoldingState.ConstantFoldingState
+        :rtype: entity.Scalar.BoolScalar
+        """
+        left = self._left.constant_folding(cf_state)
+        right = self._right.constant_folding(cf_state)
         if left is not None and right is not None:
             return BoolScalar(left.value == right.value)
 
@@ -443,9 +501,14 @@ class GreaterOrEqual(BooleanBinaryOperator):
     def _get_sign(self):
         return ">="
 
-    def constant_folding(self, constants):
-        left = self._left.constant_folding(constants)
-        right = self._right.constant_folding(constants)
+    def constant_folding(self, cf_state):
+        """
+        Optimizes code using constant folding and constant propagation.
+        :type cf_state: util.ConstantFoldingState.ConstantFoldingState
+        :rtype: entity.Scalar.BoolScalar
+        """
+        left = self._left.constant_folding(cf_state)
+        right = self._right.constant_folding(cf_state)
         if left is not None and right is not None:
             return BoolScalar(left.value >= right.value)
 
@@ -460,9 +523,14 @@ class LessOrEqual(BooleanBinaryOperator):
     def _get_sign(self):
         return "<="
 
-    def constant_folding(self, constants):
-        left = self._left.constant_folding(constants)
-        right = self._right.constant_folding(constants)
+    def constant_folding(self, cf_state):
+        """
+        Optimizes code using constant folding and constant propagation.
+        :type cf_state: util.ConstantFoldingState.ConstantFoldingState
+        :rtype: entity.Scalar.BoolScalar
+        """
+        left = self._left.constant_folding(cf_state)
+        right = self._right.constant_folding(cf_state)
         if left is not None and right is not None:
             return BoolScalar(left.value <= right.value)
 
@@ -477,9 +545,14 @@ class NotEqual(BooleanBinaryOperator):
     def _get_sign(self):
         return "!="
 
-    def constant_folding(self, constants):
-        left = self._left.constant_folding(constants)
-        right = self._right.constant_folding(constants)
+    def constant_folding(self, cf_state):
+        """
+        Optimizes code using constant folding and constant propagation.
+        :type cf_state: util.ConstantFoldingState.ConstantFoldingState
+        :rtype: entity.Scalar.BoolScalar
+        """
+        left = self._left.constant_folding(cf_state)
+        right = self._right.constant_folding(cf_state)
         if left is not None and right is not None:
             return BoolScalar(left.value != right.value)
 
@@ -505,9 +578,14 @@ class Or(BooleanBinaryOperator):
             raise ValueError("%s: operator %s cannot be applied for <%s>, <%s>" % (
                 self.unmangling(), self._get_sign(), left_type, right_type))
 
-    def constant_folding(self, constants):
-        left = self._left.constant_folding(constants)
-        right = self._right.constant_folding(constants)
+    def constant_folding(self, cf_state):
+        """
+        Optimizes code using constant folding and constant propagation.
+        :type cf_state: util.ConstantFoldingState.ConstantFoldingState
+        :rtype: entity.Scalar.BoolScalar
+        """
+        left = self._left.constant_folding(cf_state)
+        right = self._right.constant_folding(cf_state)
         if left is not None and right is not None:
             left_val = False if left.value == 0 else True
             right_val = False if right.value == 0 else True
@@ -535,9 +613,14 @@ class And(BooleanBinaryOperator):
             raise ValueError("%s: operator %s cannot be applied for <%s>, <%s>" % (
                 self.unmangling(), self._get_sign(), left_type, right_type))
 
-    def constant_folding(self, constants):
-        left = self._left.constant_folding(constants)
-        right = self._right.constant_folding(constants)
+    def constant_folding(self, cf_state):
+        """
+        Optimizes code using constant folding and constant propagation.
+        :type cf_state: util.ConstantFoldingState.ConstantFoldingState
+        :rtype: entity.Scalar.BoolScalar
+        """
+        left = self._left.constant_folding(cf_state)
+        right = self._right.constant_folding(cf_state)
         if left is not None and right is not None:
             left_val = False if left.value == 0 else True
             right_val = False if right.value == 0 else True

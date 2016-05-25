@@ -7,12 +7,13 @@ from subprocess import Popen
 
 from antlr4 import CommonTokenStream
 
-from CodeBuilder import CodeBuilder
 from Platform import Platform
-from ProgramState import ProgramState
 from grammar.GrammarLexer import GrammarLexer, FileStream
 from grammar.GrammarParser import GrammarParser
 from grammar.ParserError import ParserError
+from util.CodeBuilder import CodeBuilder
+from util.ConstantFoldingState import ConstantFoldingState
+from util.ProgramState import ProgramState
 
 
 def main(argv):
@@ -89,7 +90,7 @@ def run_compile(platform, input_file, asm_file, optimization):
     parser.program_states.validate(ProgramState())
     if optimization != 0:
         if optimization >= 1:
-            parser.program_states.constant_folding({})
+            parser.program_states.constant_folding(ConstantFoldingState())
         if optimization >= 2:
             pass
     state = ProgramState()

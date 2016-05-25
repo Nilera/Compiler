@@ -8,6 +8,7 @@ from entity.NameMangling import unmangling
 from entity.Scalar import VariableScalar, IntScalar
 from entity.StatementsContainer import StatementsContainer
 from entity.Type import Type
+from entity.Variable import Variable
 
 
 class WhileStatement(StatementsContainer):
@@ -49,9 +50,15 @@ class WhileStatement(StatementsContainer):
     def unmangling(self):
         return ""
 
-    def constant_folding(self, constants):
-        super().constant_folding(constants)
-        cond = self.__condition.constant_folding(constants)
+    def constant_folding(self, cf_state):
+        """
+        Optimizes code using constant folding and constant propagation.
+        :type cf_state: util.ConstantFoldingState.ConstantFoldingState
+        """
+        for statement in self:
+            if not isinstance(statement, Variable):
+                statement.constant_folding(cf_state)
+        cond = self.__condition.constant_folding(cf_state)
         if cond is not None:
             self.__condition = cond
 
@@ -108,13 +115,19 @@ class IfStatement(StatementsContainer):
     def unmangling(self):
         return ""
 
-    def constant_folding(self, constants):
-        super().constant_folding(constants)
-        cond = self.__condition.constant_folding(constants)
+    def constant_folding(self, cf_state):
+        """
+        Optimizes code using constant folding and constant propagation.
+        :type cf_state: util.ConstantFoldingState.ConstantFoldingState
+        """
+        for statement in self:
+            if not isinstance(statement, Variable):
+                statement.constant_folding(cf_state)
+        cond = self.__condition.constant_folding(cf_state)
         if cond is not None:
             self.__condition = cond
         if self.__else_statement is not None:
-            self.__else_statement.constant_folding(constants)
+            self.__else_statement.constant_folding(cf_state)
 
     def __str__(self):
         else_statement = "" if self.__else_statement is None else str(self.__else_statement)
@@ -138,6 +151,15 @@ class ElseStatement(StatementsContainer):
 
     def unmangling(self):
         return ""
+
+    def constant_folding(self, cf_state):
+        """
+        Optimizes code using constant folding and constant propagation.
+        :type cf_state: util.ConstantFoldingState.ConstantFoldingState
+        """
+        for statement in self:
+            if not isinstance(statement, Variable):
+                statement.constant_folding(cf_state)
 
     def __str__(self):
         return "else\n" + "\n".join("\t%d  %s" % (i, str(self[i])) for i in range(len(self)))
@@ -169,13 +191,14 @@ class ReturnStatement(CodeElement):
     def unmangling(self):
         return ""
 
-    def constant_folding(self, constants):
-        res = self.__expression.constant_folding(constants)
+    def constant_folding(self, cf_state):
+        """
+        Optimizes code using constant folding and constant propagation.
+        :type cf_state: util.ConstantFoldingState.ConstantFoldingState
+        """
+        res = self.__expression.constant_folding(cf_state)
         if res is not None:
             self.__expression = res
-
-    def find_constant(self, constants):
-        pass
 
     def __str__(self):
         return "return %s" % str(self.__expression)
@@ -264,14 +287,16 @@ class CallFunctionStatement(CodeElement):
         args = "" if self._args is None else ", ".join(arg.unmangling() for arg in self._args)
         return "%s(%s)" % (unmangling(self._function_name), args)
 
-    def constant_folding(self, constants):
+    def constant_folding(self, cf_state):
+        """
+        Optimizes code using constant folding and constant propagation.
+        :type cf_state: util.ConstantFoldingState.ConstantFoldingState
+        """
+        # TODO: try to make constant function
         for i in range(len(self._args)):
-            arg = self._args[i].constant_folding(constants)
+            arg = self._args[i].constant_folding(cf_state)
             if arg is not None:
                 self._args[i] = arg
-
-    def find_constant(self, constants):
-        pass
 
     def __str__(self):
         args = "" if self._args is None else ", ".join(str(arg) for arg in self._args)
@@ -300,13 +325,14 @@ class CallReadFunction(CallFunctionStatement):
                 "actual and formal argument lists of function read is differ in length\nrequired: 1\nfound: %d" % len(
                     self._args))
 
-    def constant_folding(self, constants):
-        pass
-
-    def find_constant(self, constants):
+    def constant_folding(self, cf_state):
+        """
+        Optimizes code using constant folding and constant propagation.
+        :type cf_state: util.ConstantFoldingState.ConstantFoldingState
+        """
         var_name = self._args[0].value
-        if contains(constants, var_name):
-            del constants[var_name]
+        if cf_state.contains_variable(var_name):
+            cf_state.remove_variable(var_name)
 
 
 class CallWriteFunction(CallFunctionStatement):
@@ -330,8 +356,15 @@ class CallWriteFunction(CallFunctionStatement):
             raise SyntaxError(
                 "function 'write' cannot be applied to given arguments\nrequired: int, boolean, char or char[]")
 
-    def find_constant(self, constants):
-        pass
+    def constant_folding(self, cf_state):
+        """
+        Optimizes code using constant folding and constant propagation.
+        :type cf_state: util.ConstantFoldingState.ConstantFoldingState
+        """
+        for i in range(len(self._args)):
+            arg = self._args[i].constant_folding(cf_state)
+            if arg is not None:
+                self._args[i] = arg
 
 
 class CallPopFunction(CallFunctionStatement):
@@ -354,8 +387,12 @@ class CallPopFunction(CallFunctionStatement):
     def validate(self, program_state):
         self._args[0].validate(program_state)
 
-    def constant_folding(self, constants):
-        pass
+    def constant_folding(self, cf_state):
+        """
+        Optimizes code using constant folding and constant propagation.
+        :type cf_state: util.ConstantFoldingState.ConstantFoldingState
+        """
+        return None
 
 
 class CallArrayCopyFunction(CallFunctionStatement):
@@ -412,8 +449,12 @@ class CallArrayCopyFunction(CallFunctionStatement):
     def value_type(self, program_state):
         return None
 
-    def constant_folding(self, constants):
-        pass
+    def constant_folding(self, cf_state):
+        """
+        Optimizes code using constant folding and constant propagation.
+        :type cf_state: util.ConstantFoldingState.ConstantFoldingState
+        """
+        return None
 
 
 class CallStrcatFunction(CallFunctionStatement):
@@ -447,8 +488,12 @@ class CallStrcatFunction(CallFunctionStatement):
     def value_type(self, program_state):
         return None
 
-    def constant_folding(self, constants):
-        pass
+    def constant_folding(self, cf_state):
+        """
+        Optimizes code using constant folding and constant propagation.
+        :type cf_state: util.ConstantFoldingState.ConstantFoldingState
+        """
+        return None
 
 
 class CallLengthFunction(CallFunctionStatement):
@@ -473,5 +518,9 @@ class CallLengthFunction(CallFunctionStatement):
     def value_type(self, program_state):
         return Type.int
 
-    def constant_folding(self, constants):
+    def constant_folding(self, cf_state):
+        """
+        Optimizes code using constant folding and constant propagation.
+        :type cf_state: util.ConstantFoldingState.ConstantFoldingState
+        """
         return None

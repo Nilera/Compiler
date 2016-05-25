@@ -16,5 +16,9 @@ class CodeElement(NameMangling, CodeGenerator, Optimizable):
     def value_type(self, program_state):
         raise NotImplementedError
 
-    def constant_folding(self, constants):
+    def constant_folding(self, cf_state):
+        """
+        Optimizes code using constant folding and constant propagation.
+        :type cf_state: util.ConstantFoldingState.ConstantFoldingState
+        """
         raise NotImplementedError

@@ -1,5 +1,7 @@
+from entity.Expression import AssignmentOperator
 from entity.Function import Function
 from entity.NameMangling import NameMangling
+from entity.Statement import CallWriteFunction, CallReadFunction
 from entity.StatementsContainer import StatementsContainer
 from entity.Variable import Variable
 
@@ -30,6 +32,29 @@ class Program(StatementsContainer):
     def unmangling(self):
         pass
 
-    def constant_folding(self, constants):
-        self.find_constant(constants)
-        super().constant_folding(constants)
+    def constant_folding(self, cf_state):
+        """
+        Optimizes code using constant folding and constant propagation.
+        :type cf_state: util.ConstantFoldingState.ConstantFoldingState
+        """
+        for statement in self:
+            if isinstance(statement, Variable):
+                statement.constant_folding(cf_state)
+            elif isinstance(statement, Function):
+                self.__global_variable_check(cf_state, statement)
+        for statement in self:
+            if isinstance(statement, Function):
+                statement.constant_folding(cf_state)
+
+    def __global_variable_check(self, cf_state, statement_container):
+        """
+        Finds global variable using in function and if assignment operator is used in relation to it, it will remove
+        from the list of constants.
+        :type cf_state: util.ConstantFoldingState.ConstantFoldingState
+        :type statement_container: entity.StatementContainer
+        """
+        for statement in statement_container:
+            if isinstance(statement, StatementsContainer):
+                self.__global_variable_check(cf_state, statement)
+            elif isinstance(statement, (AssignmentOperator, CallReadFunction)):
+                statement.constant_folding(cf_state)
