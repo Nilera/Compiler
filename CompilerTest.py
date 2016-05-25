@@ -27,6 +27,8 @@ def abstract_test_with_out(input_file, read_line=None):
     results.add(abstract_test_with_out_run(output_filename, no_optimization_cmd, read_line))
     optimization_1_cmd = ["python3", "Compiler.py", "-f", "elf64", "-O", "1", "-o", output_filename, input_file]
     results.add(abstract_test_with_out_run(output_filename, optimization_1_cmd, read_line))
+    optimization_2_cmd = ["python3", "Compiler.py", "-f", "elf64", "-O", "2", "-o", output_filename, input_file]
+    results.add(abstract_test_with_out_run(output_filename, optimization_2_cmd, read_line))
 
     if len(results) == 1:
         return next(iter(results))
@@ -55,6 +57,8 @@ def abstract_test_correct_program(input_file, read_line=None):
     result &= abstract_test_correct_program_run(output_filename, no_optimization_cmd, read_line)
     optimization_1_cmd = ["python3", "Compiler.py", "-f", "elf64", "-O", "1", "-o", output_filename, input_file]
     result &= abstract_test_correct_program_run(output_filename, optimization_1_cmd, read_line)
+    optimization_2_cmd = ["python3", "Compiler.py", "-f", "elf64", "-O", "2", "-o", output_filename, input_file]
+    result &= abstract_test_correct_program_run(output_filename, optimization_2_cmd, read_line)
 
     return result
 
@@ -84,6 +88,8 @@ def abstract_test_incorrect_program(input_file):
     result &= abstract_test_incorrect_program_run(output_filename, no_optimization_cmd)
     optimization_1_cmd = ["python3", "Compiler.py", "-f", "elf64", "-O", "1", "-o", output_filename, input_file]
     result &= abstract_test_incorrect_program_run(output_filename, optimization_1_cmd)
+    optimization_2_cmd = ["python3", "Compiler.py", "-f", "elf64", "-O", "2", "-o", output_filename, input_file]
+    result &= abstract_test_incorrect_program_run(output_filename, optimization_2_cmd)
 
     return result
 
