@@ -10,4 +10,3 @@ install:
   - "pip install antlr4-python3-runtime"
 
 script: python ./CompilerTest.py
-script: python ./CompilerOptimizationTest.py
