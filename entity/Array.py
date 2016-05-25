@@ -1,6 +1,5 @@
 from Platform import Platform
 from entity.CodeElement import CodeElement
-from entity.Function import ArrayCopyFunction
 from entity.NameMangling import NameMangling, unmangling
 from entity.Type import Type
 
@@ -172,6 +171,7 @@ class ArrayGetter(CodeElement):
         self.__code_offset(code_builder, program_state, set_value_type)
         code_builder.add_instruction("add", "ebx", "[%s]" % self.__name)
         if isinstance(self.value_type(program_state), Array):
+            from entity.Function import ArrayCopyFunction
             arr_copy_function = ArrayCopyFunction(None, ArrayCopyFunction.FUNCTION_NAME, [set_value_type.value_type])
             arr_copy_function.code(code_builder, program_state)
         else:

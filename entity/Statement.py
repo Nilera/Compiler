@@ -1,11 +1,10 @@
+from copy import deepcopy
 from operator import contains
 
 from entity.Array import Array
 from entity.CodeElement import CodeElement
-from entity.Expression import Plus
-from entity.Function import ReadFunction, WriteFunction, MainFunction, ArrayCopyFunction, LengthFunction, StrcatFunction
 from entity.NameMangling import unmangling
-from entity.Scalar import VariableScalar, IntScalar
+from entity.Scalar import IntScalar
 from entity.StatementsContainer import StatementsContainer
 from entity.Type import Type
 from entity.Variable import Variable
@@ -172,6 +171,10 @@ class ReturnStatement(CodeElement):
         """
         self.__expression = expression
 
+    @property
+    def expression(self):
+        return self.__expression
+
     def name_mangling(self, function_name, mangled_name):
         self.__expression.name_mangling(function_name, mangled_name)
 
@@ -185,6 +188,7 @@ class ReturnStatement(CodeElement):
         return None
 
     def validate(self, program_state):
+        from entity.Array import Array
         if isinstance(self.__expression.value_type(program_state), Array):
             raise SyntaxError("function couldn't return array")
 
@@ -205,6 +209,8 @@ class ReturnStatement(CodeElement):
 
 
 def get_call_function_statement(function_name, args=None):
+    from entity.Function import ReadFunction, WriteFunction, MainFunction, ArrayCopyFunction, LengthFunction, \
+        StrcatFunction
     if function_name == MainFunction.FUNCTION_NAME:
         raise SyntaxError("call main function is forbidden")
     elif function_name == ReadFunction.FUNCTION_NAME:
@@ -292,11 +298,42 @@ class CallFunctionStatement(CodeElement):
         Optimizes code using constant folding and constant propagation.
         :type cf_state: util.ConstantFoldingState.ConstantFoldingState
         """
-        # TODO: try to make constant function
         for i in range(len(self._args)):
             arg = self._args[i].constant_folding(cf_state)
             if arg is not None:
                 self._args[i] = arg
+        # check is it constant function
+        from entity.Scalar import Scalar, VariableScalar
+        function = cf_state.get_function(self._function_name)
+        if function.is_pure_function():
+            # generate constant function
+            statements = []
+            params = []
+            args = []
+            name = function.name
+            for i in range(len(function.params)):
+                arg = self._args[i]
+                if not isinstance(arg, Scalar) or isinstance(arg, VariableScalar):
+                    args.append(arg)
+                    params.append(function.params[i])
+                    statements.append(deepcopy(function[i]))
+                    name += "_x"
+                else:
+                    param = function.params[i]
+                    constant_variable = Variable(param.value_type(), param.name, arg)
+                    statements.append(constant_variable)
+                    name += ("_" + str(arg.value))
+            for i in range(len(function.params), len(function)):
+                statements.append(deepcopy(function[i]))
+            from entity.Function import Function
+            constant_function = Function(function.value_type(), name, params, statements)
+            constant_function.constant_folding(cf_state)
+            result = constant_function.fold_function()
+            if result is None:
+                cf_state.add_constant_function(constant_function)
+                self._args = args
+                self._function_name = name
+            return result
 
     def __str__(self):
         args = "" if self._args is None else ", ".join(str(arg) for arg in self._args)
@@ -309,9 +346,11 @@ class CallReadFunction(CallFunctionStatement):
 
     def code(self, code_builder, program_state):
         arr_param = self._args[0].value_type(program_state)
+        from entity.Scalar import VariableScalar
         if not isinstance(self._args[0], VariableScalar) and not (
                     isinstance(arr_param, Array) and arr_param.value_type == Type.char):
             raise SyntaxError("function 'read' cannot be applied to given arguments")
+        from entity.Function import ReadFunction
         read_fun = ReadFunction(None, self._function_name, self._args)
         code_builder.add_instruction("call", read_fun.get_label(program_state))
         code_builder.add_global_function(read_fun)
@@ -340,6 +379,7 @@ class CallWriteFunction(CallFunctionStatement):
         super(CallWriteFunction, self).__init__(function_name, args)
 
     def code(self, code_builder, program_state):
+        from entity.Function import WriteFunction
         write_fun = WriteFunction(None, self._function_name, self._args)
         code_builder.add_instruction("call", write_fun.get_label(program_state))
         code_builder.add_global_function(write_fun)
@@ -352,6 +392,7 @@ class CallWriteFunction(CallFunctionStatement):
             raise SyntaxError(
                 "actual and formal argument lists of function write is differ in length\nrequired: 1\nfound: %d" % len(
                     self._args))
+        from entity.Array import Array
         if not isinstance(self._args[0].value_type(program_state), (Type, Array)):
             raise SyntaxError(
                 "function 'write' cannot be applied to given arguments\nrequired: int, boolean, char or char[]")
@@ -424,16 +465,19 @@ class CallArrayCopyFunction(CallFunctionStatement):
         code_builder.add_instruction("mov", "eax", "esi")
         code_builder.add_instruction("mov", "ebx", "edi")
 
+        from entity.Function import ArrayCopyFunction
         arr_copy_function = ArrayCopyFunction(None, self._function_name, [src.value_type])
         arr_copy_function.code(code_builder, program_state)
 
     def validate(self, program_state):
         if len(self._args) != 5:
+            from entity.Function import ArrayCopyFunction
             raise SyntaxError(
                 "actual and formal argument lists of function %s is differ in length\nrequired: 5\nfound: %d" % (len(
                     self._args), ArrayCopyFunction.FUNCTION_NAME))
         src = self._args[0].value_type(program_state)
         dist = self._args[2].value_type(program_state)
+        from entity.Array import Array
         if not isinstance(src, Array) or src.dimension != 1 or \
                 not self._args[1].value_type(program_state) == Type.int or \
                 not isinstance(dist, Array) or dist.dimension != 1 or \
@@ -464,8 +508,10 @@ class CallStrcatFunction(CallFunctionStatement):
     def code(self, code_builder, program_state):
         dist = self._args[0]
         src = self._args[1]
+        from entity.Function import LengthFunction
         dist_length = LengthFunction(Type.int, LengthFunction.FUNCTION_NAME, [dist])
         src_length = LengthFunction(Type.int, LengthFunction.FUNCTION_NAME, [src])
+        from entity.Expression import Plus
         call_arraycopy = CallArrayCopyFunction(self._function_name,
                                                [src, IntScalar("0"), dist, dist_length,
                                                 Plus(src_length, IntScalar("1"))])
@@ -473,11 +519,13 @@ class CallStrcatFunction(CallFunctionStatement):
 
     def validate(self, program_state):
         if len(self._args) != 2:
+            from entity.Function import ArrayCopyFunction
             raise SyntaxError(
                 "actual and formal argument lists of function %s is differ in length\nrequired: 2\nfound: %d" % (len(
                     self._args), ArrayCopyFunction.FUNCTION_NAME))
         dist = self._args[0].value_type(program_state)
         src = self._args[1].value_type(program_state)
+        from entity.Array import Array
         if not isinstance(src, Array) or src.dimension != 1 or src.value_type != Type.char or \
                 not isinstance(dist, Array) or dist.dimension != 1 or dist.value_type != Type.char:
             raise SyntaxError(
@@ -501,14 +549,17 @@ class CallLengthFunction(CallFunctionStatement):
         super(CallLengthFunction, self).__init__(function_name, args)
 
     def code(self, code_builder, program_state):
+        from entity.Function import LengthFunction
         length_function = LengthFunction(Type.int, self._function_name, self._args)
         length_function.code(code_builder, program_state)
 
     def validate(self, program_state):
         if len(self._args) != 1:
+            from entity.Function import ArrayCopyFunction
             raise SyntaxError(
                 "actual and formal argument lists of function %s is differ in length\nrequired: 1\nfound: %d" % (len(
                     self._args), ArrayCopyFunction.FUNCTION_NAME))
+        from entity.Array import Array
         if not isinstance(self._args[0].value_type(program_state), Array):
             raise SyntaxError(
                 "function 'length' cannot be applied to given arguments\nrequired: array[]")

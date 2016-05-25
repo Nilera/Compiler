@@ -1,6 +1,5 @@
 from entity.Array import Array
 from entity.CodeElement import CodeElement
-from entity.Expression import Operator
 from entity.NameMangling import NameMangling, unmangling
 from entity.Scalar import VariableScalar, Scalar
 
@@ -78,6 +77,7 @@ class Variable(CodeElement):
         Optimizes code using constant folding and constant propagation.
         :type cf_state: util.ConstantFoldingState.ConstantFoldingState
         """
+        from entity.Expression import Operator
         if isinstance(self.__expression, VariableScalar):
             if cf_state.contains_variable(self.__expression.value):
                 self.__expression = cf_state.get_variable(self.__expression.value)

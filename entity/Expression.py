@@ -435,14 +435,9 @@ class Greater(BooleanBinaryOperator):
     def _get_sign(self):
         return ">"
 
-    def constant_folding(self, cf_state):
-        """
-        Optimizes code using constant folding and constant propagation.
-        :type cf_state: util.ConstantFoldingState.ConstantFoldingState
-        :rtype: entity.Scalar.BoolScalar
-        """
-        left = self._left.constant_folding(cf_state)
-        right = self._right.constant_folding(cf_state)
+    def constant_folding(self, constants):
+        left = self._left.constant_folding(constants)
+        right = self._right.constant_folding(constants)
         if left is not None and right is not None:
             return BoolScalar(left.value > right.value)
 
@@ -457,14 +452,9 @@ class Less(BooleanBinaryOperator):
     def _get_sign(self):
         return "<"
 
-    def constant_folding(self, cf_state):
-        """
-        Optimizes code using constant folding and constant propagation.
-        :type cf_state: util.ConstantFoldingState.ConstantFoldingState
-        :rtype: entity.Scalar.BoolScalar
-        """
-        left = self._left.constant_folding(cf_state)
-        right = self._right.constant_folding(cf_state)
+    def constant_folding(self, constants):
+        left = self._left.constant_folding(constants)
+        right = self._right.constant_folding(constants)
         if left is not None and right is not None:
             return BoolScalar(left.value < right.value)
 
@@ -479,14 +469,9 @@ class Equal(BooleanBinaryOperator):
     def _get_sign(self):
         return "=="
 
-    def constant_folding(self, cf_state):
-        """
-        Optimizes code using constant folding and constant propagation.
-        :type cf_state: util.ConstantFoldingState.ConstantFoldingState
-        :rtype: entity.Scalar.BoolScalar
-        """
-        left = self._left.constant_folding(cf_state)
-        right = self._right.constant_folding(cf_state)
+    def constant_folding(self, constants):
+        left = self._left.constant_folding(constants)
+        right = self._right.constant_folding(constants)
         if left is not None and right is not None:
             return BoolScalar(left.value == right.value)
 
@@ -501,14 +486,9 @@ class GreaterOrEqual(BooleanBinaryOperator):
     def _get_sign(self):
         return ">="
 
-    def constant_folding(self, cf_state):
-        """
-        Optimizes code using constant folding and constant propagation.
-        :type cf_state: util.ConstantFoldingState.ConstantFoldingState
-        :rtype: entity.Scalar.BoolScalar
-        """
-        left = self._left.constant_folding(cf_state)
-        right = self._right.constant_folding(cf_state)
+    def constant_folding(self, constants):
+        left = self._left.constant_folding(constants)
+        right = self._right.constant_folding(constants)
         if left is not None and right is not None:
             return BoolScalar(left.value >= right.value)
 
@@ -523,14 +503,9 @@ class LessOrEqual(BooleanBinaryOperator):
     def _get_sign(self):
         return "<="
 
-    def constant_folding(self, cf_state):
-        """
-        Optimizes code using constant folding and constant propagation.
-        :type cf_state: util.ConstantFoldingState.ConstantFoldingState
-        :rtype: entity.Scalar.BoolScalar
-        """
-        left = self._left.constant_folding(cf_state)
-        right = self._right.constant_folding(cf_state)
+    def constant_folding(self, constants):
+        left = self._left.constant_folding(constants)
+        right = self._right.constant_folding(constants)
         if left is not None and right is not None:
             return BoolScalar(left.value <= right.value)
 
@@ -545,14 +520,9 @@ class NotEqual(BooleanBinaryOperator):
     def _get_sign(self):
         return "!="
 
-    def constant_folding(self, cf_state):
-        """
-        Optimizes code using constant folding and constant propagation.
-        :type cf_state: util.ConstantFoldingState.ConstantFoldingState
-        :rtype: entity.Scalar.BoolScalar
-        """
-        left = self._left.constant_folding(cf_state)
-        right = self._right.constant_folding(cf_state)
+    def constant_folding(self, constants):
+        left = self._left.constant_folding(constants)
+        right = self._right.constant_folding(constants)
         if left is not None and right is not None:
             return BoolScalar(left.value != right.value)
 
@@ -578,14 +548,9 @@ class Or(BooleanBinaryOperator):
             raise ValueError("%s: operator %s cannot be applied for <%s>, <%s>" % (
                 self.unmangling(), self._get_sign(), left_type, right_type))
 
-    def constant_folding(self, cf_state):
-        """
-        Optimizes code using constant folding and constant propagation.
-        :type cf_state: util.ConstantFoldingState.ConstantFoldingState
-        :rtype: entity.Scalar.BoolScalar
-        """
-        left = self._left.constant_folding(cf_state)
-        right = self._right.constant_folding(cf_state)
+    def constant_folding(self, constants):
+        left = self._left.constant_folding(constants)
+        right = self._right.constant_folding(constants)
         if left is not None and right is not None:
             left_val = False if left.value == 0 else True
             right_val = False if right.value == 0 else True
@@ -613,14 +578,9 @@ class And(BooleanBinaryOperator):
             raise ValueError("%s: operator %s cannot be applied for <%s>, <%s>" % (
                 self.unmangling(), self._get_sign(), left_type, right_type))
 
-    def constant_folding(self, cf_state):
-        """
-        Optimizes code using constant folding and constant propagation.
-        :type cf_state: util.ConstantFoldingState.ConstantFoldingState
-        :rtype: entity.Scalar.BoolScalar
-        """
-        left = self._left.constant_folding(cf_state)
-        right = self._right.constant_folding(cf_state)
+    def constant_folding(self, constants):
+        left = self._left.constant_folding(constants)
+        right = self._right.constant_folding(constants)
         if left is not None and right is not None:
             left_val = False if left.value == 0 else True
             right_val = False if right.value == 0 else True

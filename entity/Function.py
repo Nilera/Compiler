@@ -1,5 +1,7 @@
 from Platform import Platform
 from entity.NameMangling import unmangling
+from entity.Scalar import Scalar, VariableScalar
+from entity.Statement import ReturnStatement
 from entity.StatementsContainer import StatementsContainer
 from entity.Type import Type
 
@@ -88,6 +90,52 @@ class Function(StatementsContainer):
         """
         cf_state.add_function(self.name, self)
         super().constant_folding(cf_state)
+
+    def is_pure_function(self):
+        """
+        Check is it pure function or not.
+        :rtype: bool
+        """
+        return self.__is_pure_function(self)
+
+    def __is_pure_function(self, statement_container):
+        """
+        :type statement_container: entity.StatementContainer.StatementContainer
+        :rtype: bool
+        """
+        from entity.Statement import CallReadFunction, CallWriteFunction
+        for statement in statement_container:
+            if isinstance(statement, (CallReadFunction, CallWriteFunction)):
+                return False
+            elif isinstance(statement, StatementsContainer):
+                if not self.__is_pure_function(statement):
+                    return False
+        return True
+
+    def fold_function(self):
+        """
+        Check is function has only one return statement, and returns return value if it constant.
+        :rtype: entity.Scalar.Scalar
+        """
+        results = self.__fold_function(self)
+        if len(results) == 1:
+            return results[0]
+
+    def __fold_function(self, statement_container):
+        """
+        :type statement_container: entity.StatementContainer.StatementContainer
+        :rtype: list
+        """
+        results = []
+        for statement in statement_container:
+            if isinstance(statement, ReturnStatement):
+                if isinstance(statement.expression, Scalar) and not isinstance(statement.expression, VariableScalar):
+                    results.append(statement.expression)
+            elif isinstance(statement, StatementsContainer):
+                new_result = self.__fold_function(statement)
+                if new_result is not None:
+                    results.append(new_result)
+        return results
 
     def __str__(self):
         params = "" if self._params is None else ", ".join(var.name for var in self._params)

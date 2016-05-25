@@ -1,7 +1,7 @@
 from entity.Expression import AssignmentOperator
 from entity.Function import Function
 from entity.NameMangling import NameMangling
-from entity.Statement import CallWriteFunction, CallReadFunction
+from entity.Statement import CallReadFunction
 from entity.StatementsContainer import StatementsContainer
 from entity.Variable import Variable
 
@@ -45,6 +45,8 @@ class Program(StatementsContainer):
         for statement in self:
             if isinstance(statement, Function):
                 statement.constant_folding(cf_state)
+        for function in cf_state.get_constant_functions():
+            self._statements.insert(0, function)
 
     def __global_variable_check(self, cf_state, statement_container):
         """
