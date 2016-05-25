@@ -33,12 +33,17 @@ class Program(StatementsContainer):
         pass
 
     def constant_folding(self, cf_state):
+        raise NotImplementedError
+
+    def program_constant_folding(self, cf_state, code_builder):
         """
         Optimizes code using constant folding and constant propagation.
         :type cf_state: util.ConstantFoldingState.ConstantFoldingState
+        :type code_builder: util.CodeBuilder.CodeBuilder
         """
         for statement in self:
             if isinstance(statement, Variable):
+                cf_state.add_global_variable(statement.name)
                 statement.constant_folding(cf_state)
             elif isinstance(statement, Function):
                 self.__global_variable_check(cf_state, statement)
@@ -46,7 +51,7 @@ class Program(StatementsContainer):
             if isinstance(statement, Function):
                 statement.constant_folding(cf_state)
         for function in cf_state.get_constant_functions():
-            self._statements.insert(0, function)
+            code_builder.add_global_function(function)
 
     def __global_variable_check(self, cf_state, statement_container):
         """

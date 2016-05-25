@@ -88,13 +88,14 @@ def run_compile(platform, input_file, asm_file, optimization):
 
     parser.program_states.name_mangling()
     parser.program_states.validate(ProgramState())
-    if optimization != 0:
-        if optimization >= 1:
-            parser.program_states.constant_folding(ConstantFoldingState())
-        if optimization >= 2:
-            pass
+
     state = ProgramState()
     builder = CodeBuilder(state, platform)
+    if optimization != 0:
+        if optimization >= 1:
+            parser.program_states.program_constant_folding(ConstantFoldingState(), builder)
+        if optimization >= 2:
+            pass
     parser.program_states.code(builder, state)
 
     output_file = open(asm_file, 'w')

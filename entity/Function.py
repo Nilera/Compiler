@@ -91,24 +91,34 @@ class Function(StatementsContainer):
         cf_state.add_function(self.name, self)
         super().constant_folding(cf_state)
 
-    def is_pure_function(self):
+    def is_pure_function(self, cf_state):
         """
         Check is it pure function or not.
+        :type cf_state: util.ConstantFoldingState.ConstantFoldingState
         :rtype: bool
         """
-        return self.__is_pure_function(self)
+        return self.__is_pure_function(self, cf_state)
 
-    def __is_pure_function(self, statement_container):
+    def __is_pure_function(self, statement_container, cf_state):
         """
         :type statement_container: entity.StatementContainer.StatementContainer
+        :type cf_state: util.ConstantFoldingState.ConstantFoldingState
         :rtype: bool
         """
-        from entity.Statement import CallReadFunction, CallWriteFunction
+        from entity.Statement import CallPopFunction, CallFunctionStatement, CallReadFunction, CallWriteFunction
+        from entity.Expression import AssignmentOperator
         for statement in statement_container:
             if isinstance(statement, (CallReadFunction, CallWriteFunction)):
                 return False
+            elif isinstance(statement, AssignmentOperator):
+                if isinstance(statement.target, VariableScalar) and cf_state.contains_global_variable(
+                        statement.target.value):
+                    return False
+            elif not isinstance(statement, CallPopFunction) and isinstance(statement, CallFunctionStatement):
+                if not cf_state.get_function(statement.name).is_pure_function(cf_state):
+                    return False
             elif isinstance(statement, StatementsContainer):
-                if not self.__is_pure_function(statement):
+                if not self.__is_pure_function(statement, cf_state):
                     return False
         return True
 
@@ -118,7 +128,7 @@ class Function(StatementsContainer):
         :rtype: entity.Scalar.Scalar
         """
         results = self.__fold_function(self)
-        if len(results) == 1:
+        if len(results) == 1 and isinstance(results[0], Scalar) and not isinstance(results[0], VariableScalar):
             return results[0]
 
     def __fold_function(self, statement_container):
@@ -127,14 +137,19 @@ class Function(StatementsContainer):
         :rtype: list
         """
         results = []
+        from entity.Statement import IfStatement
         for statement in statement_container:
             if isinstance(statement, ReturnStatement):
-                if isinstance(statement.expression, Scalar) and not isinstance(statement.expression, VariableScalar):
-                    results.append(statement.expression)
+                results.append(statement.expression)
             elif isinstance(statement, StatementsContainer):
                 new_result = self.__fold_function(statement)
                 if new_result is not None:
-                    results.append(new_result)
+                    results.extend(new_result)
+                if isinstance(statement, IfStatement) and statement.else_statement is not None:
+                    new_result = self.__fold_function(statement)
+                if new_result is not None:
+                    results.extend(new_result)
+
         return results
 
     def __str__(self):

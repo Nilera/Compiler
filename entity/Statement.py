@@ -122,11 +122,11 @@ class IfStatement(StatementsContainer):
         for statement in self:
             if not isinstance(statement, Variable):
                 statement.constant_folding(cf_state)
+        if self.__else_statement is not None:
+            self.__else_statement.constant_folding(cf_state)
         cond = self.__condition.constant_folding(cf_state)
         if cond is not None:
             self.__condition = cond
-        if self.__else_statement is not None:
-            self.__else_statement.constant_folding(cf_state)
 
     def __str__(self):
         else_statement = "" if self.__else_statement is None else str(self.__else_statement)
@@ -238,6 +238,10 @@ class CallFunctionStatement(CodeElement):
         args = [] if args is None else args
         self._args = args
 
+    @property
+    def name(self):
+        return self._function_name
+
     def name_mangling(self, function_name, mangled_name):
         if contains(mangled_name, self._function_name):
             self._function_name = mangled_name[self._function_name]
@@ -305,7 +309,7 @@ class CallFunctionStatement(CodeElement):
         # check is it constant function
         from entity.Scalar import Scalar, VariableScalar
         function = cf_state.get_function(self._function_name)
-        if function.is_pure_function():
+        if function.is_pure_function(cf_state):
             # generate constant function
             statements = []
             params = []
@@ -316,7 +320,6 @@ class CallFunctionStatement(CodeElement):
                 if not isinstance(arg, Scalar) or isinstance(arg, VariableScalar):
                     args.append(arg)
                     params.append(function.params[i])
-                    statements.append(deepcopy(function[i]))
                     name += "_x"
                 else:
                     param = function.params[i]

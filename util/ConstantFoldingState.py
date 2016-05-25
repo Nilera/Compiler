@@ -3,9 +3,23 @@ from operator import contains
 
 class ConstantFoldingState(object):
     def __init__(self):
+        self.__global_variables = set()
         self.__variables = {}
         self.__functions = {}
         self.__constant_functions = []
+
+    def add_global_variable(self, variable_name):
+        """
+        :type variable_name: str
+        """
+        self.__global_variables.add(variable_name)
+
+    def contains_global_variable(self, variable_name):
+        """
+        :type variable_name: str
+        :rtype: bool
+        """
+        return contains(self.__global_variables, variable_name)
 
     def add_variable(self, variable_name, value):
         """
