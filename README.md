@@ -14,6 +14,7 @@ For more information visit wiki: https://github.com/Nilera/Compiler/wiki
   * `&&`, `||`
 * control flow statements: `if`, `if/else`, `while`
 * I/O statements: `read(a)` and `write(a)`
+* constant folding, constant propagation optimizations
 
 
 ## Example
