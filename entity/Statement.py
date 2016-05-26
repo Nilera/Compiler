@@ -309,33 +309,33 @@ class CallFunctionStatement(CodeElement):
         # check is it constant function
         from entity.Scalar import Scalar, VariableScalar
         function = cf_state.get_function(self._function_name)
-        if function.is_pure_function(cf_state):
-            # generate constant function
-            statements = []
-            params = []
-            args = []
-            name = function.name
-            for i in range(len(function.params)):
-                arg = self._args[i]
-                if not isinstance(arg, Scalar) or isinstance(arg, VariableScalar):
-                    args.append(arg)
-                    params.append(function.params[i])
-                    name += "_x"
-                else:
-                    param = function.params[i]
-                    constant_variable = Variable(param.value_type(), param.name, arg)
-                    statements.append(constant_variable)
-                    name += ("_" + str(arg.value))
-            for i in range(len(function.params), len(function)):
-                statements.append(deepcopy(function[i]))
-            from entity.Function import Function
-            constant_function = Function(function.value_type(), name, params, statements)
-            constant_function.constant_folding(cf_state)
-            result = constant_function.fold_function()
-            if result is None:
-                cf_state.add_constant_function(constant_function)
-                self._args = args
-                self._function_name = name
+        # generate constant function
+        statements = []
+        params = []
+        args = []
+        name = function.name
+        for i in range(len(function.params)):
+            arg = self._args[i]
+            if not isinstance(arg, Scalar) or isinstance(arg, VariableScalar):
+                args.append(arg)
+                params.append(function.params[i])
+                name += "_x"
+            else:
+                param = function.params[i]
+                constant_variable = Variable(param.value_type(), param.name, arg)
+                statements.append(constant_variable)
+                name += ("_" + str(arg.value))
+        for i in range(len(function.params), len(function)):
+            statements.append(deepcopy(function[i]))
+        from entity.Function import Function
+        constant_function = Function(function.value_type(), name, params, statements)
+        constant_function.constant_folding(cf_state)
+        result = constant_function.fold_function()
+        if result is None and not function.is_pure_function(cf_state):
+            cf_state.add_constant_function(constant_function)
+            self._args = args
+            self._function_name = name
+        else:
             return result
 
     def __str__(self):
