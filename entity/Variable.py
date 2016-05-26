@@ -77,17 +77,12 @@ class Variable(CodeElement):
         Optimizes code using constant folding and constant propagation.
         :type cf_state: util.ConstantFoldingState.ConstantFoldingState
         """
-        from entity.Expression import Operator
-        if isinstance(self.__expression, VariableScalar):
-            if cf_state.contains_variable(self.__expression.value):
-                self.__expression = cf_state.get_variable(self.__expression.value)
-        elif isinstance(self.__expression, Operator):
+        if self.__expression is not None:
             res = self.__expression.constant_folding(cf_state)
             if res is not None:
                 self.__expression = res
-        elif not isinstance(self.__expression, Scalar):
-            return None
-        if isinstance(self.__expression, (Scalar, Operator)):
+
+        if isinstance(self.__expression, Scalar) and not isinstance(self.__expression, VariableScalar):
             cf_state.add_variable(self.__name, self.__expression)
 
     def __str__(self):
