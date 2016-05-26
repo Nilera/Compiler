@@ -27,7 +27,7 @@ def performance_test_run(output_filename, cmd, read_line=None, iter_number=1000)
 
 def performance_test(input_file, read_line=None):
     output_filename = "tmp.out"
-    iter_number = 1000
+    iter_number = 10000
 
     no_optimization_cmd = ["python3", "Compiler.py", "-f", "elf64", "-o", output_filename, input_file]
     no_optimization_time = performance_test_run(output_filename, no_optimization_cmd, read_line, iter_number)
@@ -40,7 +40,7 @@ def performance_test(input_file, read_line=None):
 
 class CompilerTest(unittest.TestCase):
     def test_optimization1(self):
-        performance_test("tests/optimization1")
+        performance_test("tests/optimization")
 
 
 if __name__ == '__main__':

@@ -1,0 +1,13 @@
+int foo(int a) {
+    int b = 32 * 32 * 4 % 42 + a;
+    int c = (a + b) * (4 * 4 * b - 2 + 32);
+    return c;
+}
+
+void main() {
+    int i = 0;
+    while (i < 100000) {
+        write(foo(10));
+        i = i + 1;
+    }
+}
