@@ -97,6 +97,10 @@ class Function(StatementsContainer):
         :type cf_state: util.ConstantFoldingState.ConstantFoldingState
         :rtype: bool
         """
+        from entity.Array import Array
+        for param in self._params:
+            if isinstance(param.value_type(), Array):
+                return False
         return self.__is_pure_function(self, cf_state)
 
     def __is_pure_function(self, statement_container, cf_state):
